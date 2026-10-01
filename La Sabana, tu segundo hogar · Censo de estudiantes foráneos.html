@@ -1,0 +1,956 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>La Sabana, tu segundo hogar · Censo de estudiantes foráneos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --navy:#00205B; --blue:#00387B; --white:#ffffff;
+  --mute:rgba(255,255,255,.68); --faint:rgba(255,255,255,.1); --line:rgba(255,255,255,.18);
+  --c-and:#ffffff; --c-car:#6F98E4; --c-ori:#3B6FCB; --c-pac:#A9C2F0; --c-ext:#7B91BC; --c-nd:#5A74A6;
+  --bar:#8FB0EC;
+  --display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --body:'Instrument Sans','Segoe UI',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-behavior:smooth;scroll-padding-top:calc(env(safe-area-inset-top,0px) + 72px);background:var(--navy)}
+body{margin:0;background:var(--navy);color:#fff;font-family:var(--body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+:focus-visible{outline:2px solid #fff;outline-offset:3px;border-radius:4px}
+svg text{font-family:var(--body)}
+.wrap{max-width:1240px;margin:0 auto;padding:0 clamp(18px,4vw,40px)}
+
+/* ---------- HERO ---------- */
+.hero{position:relative;min-height:100svh;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:center;gap:clamp(8px,3vw,48px);padding:clamp(24px,5vw,56px) clamp(18px,4vw,56px);max-width:1440px;margin:0 auto}
+.hero .copy{position:relative;z-index:2}
+.brand{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.02em;color:var(--mute);margin:0 0 clamp(18px,4vh,40px)}
+.hero h1{font-family:var(--display);font-weight:800;font-size:clamp(38px,6.2vw,86px);line-height:.98;letter-spacing:-.025em;margin:0;font-variation-settings:'opsz' 96;max-width:11.5em}
+.hero .lead{font-size:clamp(17px,1.6vw,21px);color:var(--mute);max-width:30em;margin:clamp(16px,3vh,28px) 0 0}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(16px,3vh,28px) 28px;margin:clamp(24px,5vh,48px) 0 0;max-width:520px}
+.kpi{border-top:1px solid var(--line);padding-top:12px}
+.kpi b{display:block;font-family:var(--display);font-weight:800;font-size:clamp(30px,3.6vw,48px);line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi span{display:block;margin-top:6px;font-size:14px;color:var(--mute);line-height:1.35}
+.go{display:inline-block;margin-top:clamp(24px,5vh,44px);background:#fff;color:var(--navy);font-weight:600;padding:14px 26px;border-radius:999px;font-size:16px;text-decoration:none;transition:transform .2s}
+.go:hover{transform:translateY(-2px)}
+.hero .mapcol{position:relative;z-index:1}
+.geomap{position:relative;width:100%}
+.geomap svg,.geomap canvas{position:absolute;inset:0;width:100%;height:100%}
+.geomap canvas{pointer-events:none}
+.hero .geomap{height:clamp(440px,84svh,820px)}
+.explorer .geomap{aspect-ratio:5/6.5;max-height:86svh;margin:0 auto}
+.dept{stroke:rgba(255,255,255,.28);stroke-width:.6;transition:fill .5s,fill-opacity .3s,stroke .2s}
+.explorer .dept{cursor:pointer}
+.explorer .dept:hover{stroke:#fff;stroke-width:1.4}
+.dept.on{stroke:#fff;stroke-width:2.2}
+.pulse{transform-box:fill-box;transform-origin:center;animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{0%{transform:scale(.4);opacity:.9}100%{transform:scale(3.4);opacity:0}}
+.maplabel{font-size:11px;font-weight:600;fill:#fff;paint-order:stroke;stroke:var(--navy);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.ringlabel{font-size:11px;fill:rgba(255,255,255,.8);paint-order:stroke;stroke:var(--navy);stroke-width:3px}
+
+/* ---------- FILTER BAR ---------- */
+.fbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:rgba(0,32,91,.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.fbar .wrap{display:flex;align-items:center;gap:14px;min-height:56px;padding-top:8px;padding-bottom:8px;flex-wrap:wrap}
+.fcount{font-family:var(--display);font-weight:800;font-size:22px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fcount small{font-family:var(--body);font-weight:400;font-size:14px;color:var(--mute);margin-left:6px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;flex:1;min-width:0}
+.hint{font-size:14px;color:var(--mute)}
+.chip{display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--navy);font-size:14px;font-weight:600;padding:5px 12px;border-radius:999px}
+.chip i{font-style:normal;opacity:.6}
+.reset{font-size:14px;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:6px 14px;white-space:nowrap}
+.reset[disabled]{opacity:.35;cursor:default}
+
+/* ---------- SECTIONS ---------- */
+section.s{padding:clamp(56px,9vw,112px) 0 0}
+section.s.band{background:var(--blue);padding-bottom:clamp(56px,9vw,112px);margin-top:clamp(56px,9vw,112px)}
+.sh{max-width:46em;margin:0 0 clamp(24px,4vw,44px)}
+.sh h2{font-family:var(--display);font-weight:800;font-size:clamp(30px,4.4vw,56px);line-height:1.02;letter-spacing:-.02em;margin:0}
+.sh p{color:var(--mute);font-size:clamp(16px,1.4vw,19px);margin:14px 0 0;max-width:36em}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,64px);align-items:start}
+.grid-map{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(24px,4vw,56px);align-items:start}
+.sub{font-family:var(--display);font-weight:600;font-size:19px;margin:0 0 4px}
+.subnote{font-size:14px;color:var(--mute);margin:0 0 16px}
+.chart{width:100%;position:relative}
+.chart svg{display:block;overflow:visible}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;margin:0 0 18px;flex-wrap:wrap}
+.seg button{padding:7px 15px;border-radius:999px;font-size:14px;font-weight:500;color:var(--mute);transition:background .2s,color .2s}
+.seg button[aria-pressed=true]{background:#fff;color:var(--navy);font-weight:600}
+.legend{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:13px;color:var(--mute);margin:12px 0 0}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:-1px}
+
+/* HTML bar lists */
+.bars{display:flex;flex-direction:column;gap:2px}
+.bar{display:grid;grid-template-columns:minmax(96px,34%) minmax(0,1fr) 3.6em;align-items:center;gap:10px;padding:6px 6px;border-radius:8px;width:100%;transition:background .2s,opacity .3s}
+.bar:hover{background:var(--faint)}
+.bar .l{font-size:14px;line-height:1.25;overflow:hidden;text-overflow:ellipsis}
+.bar .l small{display:block;color:var(--mute);font-size:12px}
+.bar .t{height:10px;background:var(--faint);border-radius:5px;overflow:hidden}
+.bar .f{display:block;height:100%;width:0;background:var(--bar);border-radius:5px;transition:width .7s cubic-bezier(.2,.8,.2,1),background .3s}
+.bar .v{font-variant-numeric:tabular-nums;font-weight:600;font-size:14px;text-align:right}
+.bar.on{background:rgba(255,255,255,.14)}
+.bar.on .f{background:#fff}
+.bars.has-on .bar:not(.on){opacity:.55}
+.empty{color:var(--mute);font-size:14px;padding:12px 0}
+
+/* heatmap */
+.heat{display:grid;grid-template-columns:minmax(120px,1.6fr) repeat(4,minmax(0,1fr));gap:3px;font-size:14px}
+.heat .hh{font-size:12px;color:var(--mute);padding:0 4px 6px;text-align:center}
+.heat .hr{padding:8px 6px 8px 0;line-height:1.2;display:flex;align-items:center}
+.heat .hc{border-radius:6px;min-height:36px;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;font-weight:600;transition:background .5s,color .5s,outline-color .2s;outline:2px solid transparent}
+.heat button.hc:hover{outline-color:#fff}
+.heat .hc.on{outline-color:#fff}
+
+/* stats row */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px 28px;margin:0 0 clamp(24px,4vw,40px)}
+.stat{border-top:1px solid var(--line);padding-top:12px}
+.stat b{display:block;font-family:var(--display);font-weight:800;font-size:clamp(28px,3.4vw,44px);line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat span{display:block;font-size:14px;color:var(--mute);margin-top:6px;line-height:1.35}
+
+/* insights */
+.insights{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 clamp(24px,4vw,64px)}
+.insights li{display:grid;grid-template-columns:minmax(96px,150px) 1fr;gap:18px;align-items:baseline;padding:20px 0;border-top:1px solid var(--line)}
+.insights b{font-family:var(--display);font-weight:800;font-size:clamp(28px,3.2vw,42px);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.insights p{margin:0;color:rgba(255,255,255,.86)}
+
+footer{padding:clamp(56px,8vw,96px) 0 calc(48px + env(safe-area-inset-bottom,0px));color:var(--mute);font-size:14px}
+footer ul{margin:10px 0 0;padding-left:1.1em;max-width:60em}
+footer li{margin:4px 0}
+
+#tip{position:fixed;z-index:60;pointer-events:none;background:#fff;color:var(--navy);padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.35;max-width:240px;box-shadow:0 8px 28px rgba(0,0,0,.35);opacity:0;transition:opacity .12s}
+#tip b{font-family:var(--display);font-size:15px;display:block;margin-bottom:2px}
+#tip.show{opacity:1}
+
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr;min-height:auto;padding-top:28px}
+  .hero .geomap{height:clamp(380px,70svh,640px)}
+  .grid2,.grid-map{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .insights{grid-template-columns:1fr}
+  .kpis{max-width:none}
+}
+@media (max-width:520px){
+  .bar{grid-template-columns:minmax(80px,38%) minmax(0,1fr) 3.2em}
+  .insights li{grid-template-columns:100px 1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .pulse{animation:none;opacity:.5}
+  .bar .f,.dept,.heat .hc{transition:none}
+}
+</style>
+</head>
+<body>
+
+<header class="hero" id="inicio">
+  <div class="copy">
+    <p class="brand">La Sabana, tu segundo hogar</p>
+    <h1><span id="hTotal">925</span> estudiantes llegaron de todo el país para estudiar en Chía</h1>
+    <p class="lead">Este es el censo de los estudiantes foráneos de la Universidad: de dónde vienen, qué estudian y en qué punto de su carrera están. Toca cualquier parte del tablero para filtrar todo lo demás.</p>
+    <div class="kpis" id="kpis"></div>
+    <a class="go" href="#mapa">Explorar el censo</a>
+  </div>
+  <div class="mapcol"><div class="geomap" id="heroMap" role="img" aria-label="Mapa de Colombia con los trayectos de los estudiantes foráneos hacia el campus en Chía"></div></div>
+</header>
+
+<div class="fbar" id="fbar">
+  <div class="wrap">
+    <div class="fcount"><span id="fN">925</span><small>de <span id="fT">925</span> estudiantes</small></div>
+    <div class="chips" id="chips"><span class="hint">Toca un departamento, una barra o una columna para filtrar todo el tablero.</span></div>
+    <button class="reset" id="reset" disabled>Limpiar filtros</button>
+  </div>
+</div>
+
+<main>
+<section class="s explorer" id="mapa">
+  <div class="wrap">
+    <div class="sh">
+      <h2>De dónde vienen</h2>
+      <p>Cada punto es un estudiante en su municipio de origen. Cambia la vista para ver el calor por departamento, los municipios, los trayectos hacia el campus o los anillos de distancia.</p>
+    </div>
+    <div class="grid-map">
+      <div>
+        <div class="seg" id="modeSeg" role="group" aria-label="Vista del mapa">
+          <button data-m="heat" aria-pressed="true">Departamentos</button>
+          <button data-m="bubbles" aria-pressed="false">Municipios</button>
+          <button data-m="flows" aria-pressed="false">Trayectos</button>
+          <button data-m="rings" aria-pressed="false">Anillos</button>
+        </div>
+        <div class="geomap" id="exMap" role="img" aria-label="Mapa interactivo de Colombia por departamento"></div>
+      </div>
+      <div>
+        <h3 class="sub">Departamentos de origen</h3>
+        <p class="subnote">Toca un departamento para filtrar.</p>
+        <div class="bars" id="deptBars"></div>
+        <p class="subnote" id="outNote" style="margin-top:18px"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="distancia">
+  <div class="wrap">
+    <div class="sh">
+      <h2>Cuánto camino recorren</h2>
+      <p>La distancia entre el municipio de origen y el campus de Chía. Quedarse en La Sabana es, para muchos, mudarse a otra región.</p>
+    </div>
+    <div class="stats" id="distStats"></div>
+    <div class="chart" id="distChart"></div>
+    <p class="subnote" style="margin-top:8px">Toca una columna para ver quiénes viven en ese rango de kilómetros.</p>
+  </div>
+</section>
+
+<section class="s" id="regiones">
+  <div class="wrap">
+    <div class="sh">
+      <h2>Cuatro regiones, un mismo campus</h2>
+      <p>De la Andina al Caribe: el peso de cada región y hacia qué facultades se dirigen sus estudiantes.</p>
+    </div>
+    <div class="grid2">
+      <div>
+        <h3 class="sub">Por región natural</h3>
+        <p class="subnote">Toca una porción para filtrar.</p>
+        <div class="chart" id="donut"></div>
+        <div class="bars" id="regBars" style="margin-top:12px"></div>
+      </div>
+      <div>
+        <h3 class="sub">De la región a la facultad</h3>
+        <p class="subnote">El grosor de cada cinta es el número de estudiantes.</p>
+        <div class="chart" id="sankey"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="carreras">
+  <div class="wrap">
+    <div class="sh">
+      <h2>Qué estudian</h2>
+      <p>Facultades y programas con más estudiantes foráneos, y de qué región llega cada carrera.</p>
+    </div>
+    <div class="grid2">
+      <div>
+        <h3 class="sub">Facultades</h3>
+        <div class="bars" id="facBars" style="margin-bottom:32px"></div>
+        <h3 class="sub">Programas</h3>
+        <p class="subnote" id="progNote">Los 14 programas con más estudiantes.</p>
+        <div class="bars" id="progBars"></div>
+      </div>
+      <div>
+        <h3 class="sub">¿De dónde viene cada carrera?</h3>
+        <p class="subnote">Los 12 programas más grandes por región de origen.</p>
+        <div class="seg" id="heatSeg" role="group" aria-label="Medida del mapa de calor">
+          <button data-m="n" aria-pressed="true">Estudiantes</button>
+          <button data-m="p" aria-pressed="false">% del programa</button>
+        </div>
+        <div class="heat" id="heat"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="semestres">
+  <div class="wrap">
+    <div class="sh">
+      <h2>En qué momento de la carrera están</h2>
+      <p>Cuántos foráneos hay en cada semestre. Los primeros semestres son los que más necesitan sentirse acompañados.</p>
+    </div>
+    <div class="chart" id="semChart"></div>
+    <p class="subnote" id="semNote" style="margin-top:8px"></p>
+  </div>
+</section>
+
+<section class="s band" id="rendimiento">
+  <div class="wrap">
+    <div class="sh">
+      <h2>Cómo les va</h2>
+      <p>Promedio acumulado y carga académica. No incluye a quienes aún no tienen promedio (casi todos son de primer semestre).</p>
+    </div>
+    <div class="grid2">
+      <div>
+        <h3 class="sub">Promedio acumulado</h3>
+        <p class="subnote" id="gpaNote"></p>
+        <div class="chart" id="gpaChart"></div>
+      </div>
+      <div>
+        <h3 class="sub">Créditos inscritos</h3>
+        <p class="subnote" id="crNote"></p>
+        <div class="chart" id="crChart"></div>
+      </div>
+    </div>
+    <div style="margin-top:clamp(32px,5vw,56px)">
+      <h3 class="sub">¿Influye la distancia en el promedio?</h3>
+      <p class="subnote" id="scNote"></p>
+      <div class="chart" id="scatter"></div>
+      <div class="legend" id="scLegend"></div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="municipios">
+  <div class="wrap">
+    <div class="sh">
+      <h2>Los municipios que más nos envían</h2>
+      <p>Ciudades grandes y pueblos pequeños que ya tienen estudiantes en La Sabana.</p>
+    </div>
+    <div class="grid2">
+      <div>
+        <h3 class="sub">Top municipios</h3>
+        <p class="subnote">Toca un municipio para filtrar.</p>
+        <div class="bars" id="munBars"></div>
+      </div>
+      <div>
+        <h3 class="sub">Lo que dicen los datos</h3>
+        <p class="subnote">Se actualiza con los filtros que elijas.</p>
+        <ul class="insights" id="insights" style="grid-template-columns:1fr"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <strong style="color:#fff">Notas sobre los datos</strong>
+    <ul>
+      <li>La base original tenía 926 registros; se eliminó 1 duplicado (mismo ID de estudiante). Se analizan 925 estudiantes.</li>
+      <li>29 registros no traen departamento (municipios con nombre repetido, como Albania, Barbosa o Florencia): cuentan en los totales pero no aparecen en el mapa ni en las regiones.</li>
+      <li>10 estudiantes tienen origen en el exterior. Se muestran aparte del mapa.</li>
+      <li>Regiones agrupadas por departamento: Andina, Caribe, Orinoquía y Pacífica. Los puntos del mapa están ubicados en el centro de cada municipio.</li>
+      <li>El promedio excluye a quienes aparecen con 0 o sin promedio. La distancia viene de la base original (39 registros sin dato).</li>
+      <li>Este tablero no incluye nombres, correos, teléfonos ni ID de estudiantes: solo datos agregados por estudiante sin identificar.</li>
+    </ul>
+  </div>
+</footer>
+
+<div id="tip" role="tooltip"></div>
+
+<script>
+const D = {"depts":[{"k":"BOYACA","n":"Boyacá","r":"Andina"},{"k":"CUNDINAMARCA","n":"Cundinamarca","r":"Andina"},{"k":"ATLANTICO","n":"Atlántico","r":"Caribe"},{"k":"SANTANDER","n":"Santander","r":"Andina"},{"k":"META","n":"Meta","r":"Orinoquía"},{"k":"HUILA","n":"Huila","r":"Andina"},{"k":"BOLIVAR","n":"Bolívar","r":"Caribe"},{"k":"TOLIMA","n":"Tolima","r":"Andina"},{"k":"NORTE DE SANTANDER","n":"Norte de Santander","r":"Andina"},{"k":"CESAR","n":"Cesar","r":"Caribe"},{"k":"CASANARE","n":"Casanare","r":"Orinoquía"},{"k":"VALLE DEL CAUCA","n":"Valle del Cauca","r":"Pacífica"},{"k":"CORDOBA","n":"Córdoba","r":"Caribe"},{"k":"CALDAS","n":"Caldas","r":"Andina"},{"k":"ANTIOQUIA","n":"Antioquia","r":"Andina"},{"k":"RISARALDA","n":"Risaralda","r":"Andina"},{"k":"NARINO","n":"Nariño","r":"Pacífica"},{"k":"LA GUAJIRA","n":"La Guajira","r":"Caribe"},{"k":"SUCRE","n":"Sucre","r":"Caribe"},{"k":"ARAUCA","n":"Arauca","r":"Orinoquía"},{"k":"MAGDALENA","n":"Magdalena","r":"Caribe"},{"k":"CAUCA","n":"Cauca","r":"Pacífica"},{"k":"CHOCO","n":"Chocó","r":"Pacífica"},{"k":"QUINDIO","n":"Quindío","r":"Andina"}],"regs":["Andina","Caribe","Orinoquía","Pacífica"],"facs":["EICEA","Ingeniería","Medicina","Comunicación","Jurídicas, Políticas e Int.","Ciencias del Comportamiento","Ciencias de la Vida y el Bienestar","Educación","Filosofía y Ciencias Humanas"],"progs":["Medicina","Adm. de Negocios Internacionales","Comunicación Audiovisual y Multimedios","Derecho","Ing. Informática","Ing. Industrial","Psicología","Mercadeo y Logística Int.","Adm. de Empresas","Comunicación Social y Periodismo","Gastronomía","Ing. Química","Economía y Finanzas Int.","Fisioterapia","Ing. Mecánica","Comunicación Corporativa","Ing. Civil","Economía y Finanzas Int. (Virtual)","Ciencia de Datos","Ing. de Diseño e Innovación","Enfermería","Relaciones Internacionales","Lic. en Educación Infantil","Ciencias Políticas","Administración y Servicio","Ing. de Bioproducción","Filosofía","Ing. en Inteligencia Artificial","Comportamiento Organizacional"],"prog_fac":[2,0,3,4,1,1,5,0,0,3,0,1,0,6,1,3,1,0,1,1,6,4,7,4,0,1,8,1,5],"muns":[{"n":"Villavicencio","d":4,"x":-60.9867,"y":42.2477},{"n":"Tunja","d":0,"x":-60.6435,"y":43.6599},{"n":"Sahagún","d":12,"x":-62.936,"y":47.1186},{"n":"Pasto","d":16,"x":-66.2474,"y":39.5851},{"n":"Manizales","d":13,"x":-63.6073,"y":43.4567},{"n":"Sogamoso","d":0,"x":-59.9332,"y":43.7199},{"n":"Ibagué","d":7,"x":-63.3132,"y":42.8005},{"n":"Riohacha","d":17,"x":-58.8875,"y":49.2385},{"n":"Villeta","d":1,"x":-62.2062,"y":43.2806},{"n":"Montería","d":12,"x":-63.7196,"y":46.972},{"n":"Barranquilla","d":2,"x":-61.7092,"y":49.2146},{"n":"Soledad","d":2,"x":-61.6502,"y":49.1276},{"n":"Socha","d":0,"x":-59.5914,"y":43.9762},{"n":"San José de Toluviejo","d":18,"x":-62.8419,"y":47.8134},{"n":"Pereira","d":15,"x":-63.9062,"y":43.1755},{"n":"Cartagena de Indias","d":6,"x":-62.7305,"y":48.7332},{"n":"Barrancabermeja","d":3,"x":-60.8835,"y":45.216},{"n":"Sincelejo","d":18,"x":-62.8508,"y":47.6357},{"n":"Valledupar","d":9,"x":-59.7523,"y":48.5063},{"n":"Los Patios","d":8,"x":-59.0638,"y":45.7073},{"n":"Arauca","d":19,"x":-56.4591,"y":44.5011},{"n":"Pitalito","d":5,"x":-64.8223,"y":40.2254},{"n":"Magangué","d":6,"x":-61.8812,"y":47.3988},{"n":"Villa de San Diego de Ubaté","d":1,"x":-61.2616,"y":43.4992},{"n":"San José de Cúcuta","d":8,"x":-58.9225,"y":46.0624},{"n":"Neiva","d":5,"x":-63.5981,"y":41.3955},{"n":"La Mesa","d":1,"x":-62.2473,"y":42.9117},{"n":"Villapinzón","d":1,"x":-60.9519,"y":43.3824},{"n":"La Ceja","d":14,"x":-63.3551,"y":44.3634},{"n":"Buesaco","d":16,"x":-66.1727,"y":39.8784},{"n":"Chocontá","d":1,"x":-61.0978,"y":43.2905},{"n":"Santa Marta","d":20,"x":-60.326,"y":49.2272},{"n":"Cali","d":11,"x":-65.2288,"y":41.8881},{"n":"Cereté","d":12,"x":-63.4819,"y":47.2525},{"n":"Floridablanca","d":3,"x":-59.9095,"y":45.1457},{"n":"Duitama","d":0,"x":-60.1357,"y":43.9636},{"n":"Bucaramanga","d":3,"x":-59.9608,"y":45.2248},{"n":"Yopal","d":10,"x":-59.1534,"y":43.2171},{"n":"Chipaque","d":1,"x":-61.7148,"y":42.6533},{"n":"Barrancas","d":17,"x":-58.5758,"y":48.9136},{"n":"Bosconia","d":9,"x":-60.5116,"y":48.0677},{"n":"Sutatausa","d":1,"x":-61.3201,"y":43.4355},{"n":"San Andrés","d":3,"x":-59.6129,"y":44.8367},{"n":"Pamplona","d":8,"x":-59.3166,"y":45.3752},{"n":"Fusagasugá","d":1,"x":-62.1473,"y":42.5667},{"n":"Sabaneta","d":14,"x":-63.5868,"y":44.5122},{"n":"Piedecuesta","d":3,"x":-59.8433,"y":45.0313},{"n":"Turbaco","d":6,"x":-62.6133,"y":48.6284},{"n":"Paipa","d":0,"x":-60.2742,"y":43.9216},{"n":"Purificación","d":7,"x":-62.9174,"y":42.183},{"n":"Tame","d":19,"x":-58.2298,"y":44.2638},{"n":"San Sebastián de Mariquita","d":7,"x":-62.7544,"y":43.5379},{"n":"Arcabuco","d":0,"x":-60.6771,"y":43.874},{"n":"Ramiriquí","d":0,"x":-60.5702,"y":43.424},{"n":"Yaguará","d":5,"x":-63.8965,"y":41.0402},{"n":"Villa del Rosario","d":8,"x":-58.9898,"y":45.7498},{"n":"Agua de Dios","d":1,"x":-62.5502,"y":42.6654},{"n":"Acacías","d":4,"x":-61.3828,"y":42.2184},{"n":"Becerril","d":9,"x":-59.6182,"y":47.7913},{"n":"Medellín","d":14,"x":-63.5811,"y":44.6482},{"n":"La Plata","d":5,"x":-64.685,"y":40.7769},{"n":"San Diego","d":9,"x":-59.5286,"y":48.2869},{"n":"La Vega","d":21,"x":-65.6367,"y":40.5738},{"n":"El Molino","d":17,"x":-58.844,"y":48.5645},{"n":"Chiquinquirá","d":0,"x":-61.2023,"y":43.8106},{"n":"Tibú","d":8,"x":-59.2407,"y":46.6993},{"n":"Socorro","d":3,"x":-60.2552,"y":44.5698},{"n":"Anapoima","d":1,"x":-62.3303,"y":42.833},{"n":"Girardot","d":1,"x":-62.7511,"y":42.6404},{"n":"Sibaté","d":1,"x":-61.9886,"y":42.7108},{"n":"Castilla La Nueva","d":4,"x":-61.0904,"y":41.976},{"n":"Palermo","d":5,"x":-63.757,"y":41.2744},{"n":"Popayán","d":21,"x":-65.3779,"y":40.9737},{"n":"Guamo","d":7,"x":-63.0075,"y":42.3895},{"n":"Vélez","d":3,"x":-60.944,"y":44.4097},{"n":"Puerto Colombia","d":2,"x":-61.8173,"y":49.2428},{"n":"Guachetá","d":1,"x":-61.0763,"y":43.5653},{"n":"Macanal","d":0,"x":-60.6094,"y":43.0921},{"n":"Tibirita","d":1,"x":-60.8883,"y":43.2274},{"n":"Anolaima","d":1,"x":-62.2118,"y":43.0564},{"n":"Baranoa","d":2,"x":-61.8712,"y":49.0302},{"n":"Cáqueza","d":1,"x":-61.5602,"y":42.6122},{"n":"Machetá","d":1,"x":-61.036,"y":43.1956},{"n":"Garzón","d":5,"x":-64.001,"y":40.6075},{"n":"Nobsa","d":0,"x":-59.9744,"y":43.8315},{"n":"Melgar","d":7,"x":-62.5514,"y":42.4851},{"n":"Fundación","d":20,"x":-60.4254,"y":48.5817},{"n":"Aguazul","d":10,"x":-59.5715,"y":43.1405},{"n":"San Gil","d":3,"x":-60.0789,"y":44.6416},{"n":"San Alberto","d":9,"x":-60.2995,"y":45.9572},{"n":"Sutamarchán","d":0,"x":-60.9473,"y":43.79},{"n":"Rivera","d":5,"x":-63.4631,"y":41.1483},{"n":"Tuluá","d":11,"x":-64.4034,"y":42.4651},{"n":"Málaga","d":3,"x":-59.5406,"y":44.7529},{"n":"Monterrey","d":10,"x":-60.0371,"y":42.9065},{"n":"Istmina","d":22,"x":-76.68,"y":5.16},{"n":"La Cumbre","d":11,"x":-65.2123,"y":42.1551},{"n":"Piojó","d":2,"x":-62.2226,"y":49.0096},{"n":"Girón","d":3,"x":-60.2311,"y":45.1816},{"n":"San Andrés de Tumaco","d":16,"x":-68.1413,"y":40.207},{"n":"Chinácota","d":8,"x":-59.1427,"y":45.5648},{"n":"Úmbita","d":0,"x":-60.7906,"y":43.3431},{"n":"Chaparral","d":7,"x":-63.8873,"y":42.1414},{"n":"Puerto Concordia","d":4,"x":-60.1163,"y":40.8024},{"n":"San Juan de Rioseco","d":1,"x":-62.4724,"y":43.1319},{"n":"Pupiales","d":16,"x":-66.8487,"y":39.5084},{"n":"Quibdó","d":22,"x":-65.065,"y":44.4161},{"n":"Sáchica","d":0,"x":-60.8415,"y":43.709},{"n":"Montelíbano","d":12,"x":-63.4868,"y":46.2532},{"n":"Zipacón","d":1,"x":-62.1186,"y":43.0155},{"n":"Samacá","d":0,"x":-60.8366,"y":43.6114},{"n":"Boyacá","d":0,"x":-60.65,"y":43.5504},{"n":"Fómeque","d":1,"x":-61.3373,"y":42.7211},{"n":"Guateque","d":0,"x":-60.8533,"y":43.153},{"n":"Bochalema","d":8,"x":-59.251,"y":45.6225},{"n":"Envigado","d":14,"x":-63.5288,"y":44.5248},{"n":"Espinal","d":7,"x":-62.8781,"y":42.4829},{"n":"Lenguazaque","d":1,"x":-61.0817,"y":43.4708},{"n":"Ráquira","d":0,"x":-60.9756,"y":43.6606},{"n":"Fonseca","d":17,"x":-58.7415,"y":48.7652},{"n":"Aguachica","d":9,"x":-60.4461,"y":46.3781},{"n":"Jamundí","d":11,"x":-65.3359,"y":41.6941},{"n":"Villamaría","d":13,"x":-63.5197,"y":43.3178},{"n":"Simijaca","d":1,"x":-61.2622,"y":43.7063},{"n":"Cerinza","d":0,"x":-59.9872,"y":44.0226},{"n":"Calarcá","d":23,"x":-63.8546,"y":42.8636}],"rows":[[-1,-1,2,0,13,33,null,3.89,null],[4,0,4,3,10,6,104.4,3.75,null],[0,1,1,14,9,16,102.9,4.26,null],[12,2,2,0,9,25,464.2,4.11,null],[0,1,2,0,12,33,102.9,4.17,null],[16,3,2,0,11,24,548.3,3.85,null],[13,4,2,0,14,33,165.2,4.27,null],[0,1,2,0,13,33,102.9,4.19,null],[-1,-1,2,0,13,33,null,3.96,null],[0,5,2,0,14,33,155.5,4.13,null],[7,6,2,0,11,24,142.7,3.88,null],[4,0,0,8,7,18,104.4,3.37,null],[-1,-1,2,0,14,33,null,4.39,null],[7,6,2,0,14,33,142.7,4.17,null],[17,7,2,0,12,33,719.4,3.7,null],[1,8,2,0,12,33,53.1,3.72,null],[12,9,2,0,11,24,465.0,3.81,null],[2,10,4,3,10,16,686.1,4.02,null],[12,9,2,0,12,33,465.0,3.83,null],[0,5,2,0,12,33,155.5,4.16,null],[4,0,2,0,9,25,104.4,3.71,null],[2,11,2,0,11,24,677.2,4.2,null],[0,12,2,0,11,24,193.1,4.47,null],[12,9,2,0,11,24,465.0,4.2,null],[0,1,0,7,9,18,102.9,4.29,null],[18,13,2,0,11,24,537.7,3.87,null],[15,14,0,1,9,16,195.4,4.13,null],[0,1,2,0,11,24,102.9,3.86,null],[12,9,2,0,9,25,465.0,3.77,null],[6,15,2,0,11,24,642.4,4.16,null],[3,16,3,9,9,17,245.4,4.31,null],[4,0,3,2,9,17,104.4,4.25,null],[18,17,2,0,13,33,518.9,4.24,null],[9,18,2,0,12,33,599.1,3.81,null],[1,8,2,0,11,24,53.1,3.75,null],[15,14,2,0,13,33,195.4,4.18,null],[8,19,2,0,13,33,361.0,4.27,null],[19,20,2,0,13,33,445.2,4.46,null],[5,21,2,0,13,33,403.1,4.16,null],[4,0,2,0,10,23,104.4,3.84,null],[6,22,2,0,9,25,472.0,3.73,null],[0,5,2,0,10,23,155.5,4.02,null],[1,23,2,0,13,33,55.8,4.33,null],[9,18,2,0,10,23,599.1,4.43,null],[2,11,2,0,13,33,677.2,3.85,null],[0,1,2,0,10,23,102.9,3.97,null],[8,24,2,0,10,23,399.7,4.31,null],[0,1,2,0,10,23,102.9,4.21,null],[12,9,2,0,10,23,465.0,4.2,null],[5,25,2,0,10,23,249.1,4.49,null],[18,17,1,5,8,9,518.9,3.72,null],[3,16,7,22,10,16,245.4,4.19,null],[12,9,3,15,9,17,465.0,4.15,null],[8,24,0,12,6,21,399.7,3.33,null],[12,9,0,1,7,20,465.0,3.37,null],[1,26,6,13,10,11,54.1,3.8,null],[1,27,1,25,9,7,64.8,3.67,null],[-1,-1,1,16,9,6,null,3.25,null],[7,6,3,2,6,18,142.7,4.29,null],[5,25,0,8,8,9,249.1,3.68,null],[14,28,1,5,1,16,199.4,4.22,null],[0,5,2,0,9,25,155.5,3.46,null],[2,10,0,8,7,10,686.1,3.52,null],[6,15,2,0,9,25,642.4,4.56,null],[16,29,1,11,8,10,522.2,3.35,null],[1,30,1,11,8,19,48.3,3.47,null],[7,6,0,8,3,19,142.7,3.53,null],[-2,-1,0,1,9,16,null,3.99,"Washington"],[5,25,1,4,9,16,249.1,4.44,null],[2,10,5,6,7,16,686.1,3.94,null],[20,31,1,5,8,7,696.3,3.75,null],[11,32,3,15,8,20,325.6,4.28,null],[12,33,0,10,5,21,492.7,3.99,null],[5,25,0,1,5,19,249.1,3.87,null],[3,16,1,5,8,18,245.4,3.96,null],[3,34,1,11,8,19,268.7,4.38,null],[11,32,1,14,9,16,325.6,4.25,null],[0,1,2,0,7,21,102.9,4.07,null],[-1,-1,0,10,8,18,null,3.5,null],[5,25,0,8,9,2,249.1,4.01,null],[6,15,3,15,9,17,642.4,4.08,null],[5,25,3,2,8,19,249.1,4.32,null],[2,10,3,2,8,19,686.1,4.51,null],[13,4,3,2,9,17,165.2,4.45,null],[4,0,1,5,8,20,104.4,3.49,null],[3,34,3,2,8,18,268.7,4.46,null],[0,5,2,0,7,21,155.5,4.34,null],[4,0,1,14,9,16,104.4,3.94,null],[0,35,3,9,8,18,156.6,4.18,null],[19,20,2,0,7,21,445.2,4.09,null],[6,15,2,0,9,25,642.4,3.76,null],[-1,-1,3,9,8,16,null,3.8,null],[3,36,0,7,8,17,274.7,4.29,null],[6,15,3,15,8,10,642.4,4.35,null],[10,37,5,6,9,16,201.1,3.99,null],[2,10,0,1,9,16,686.1,4.25,null],[2,10,0,1,8,18,686.1,3.81,null],[5,25,2,0,6,22,249.1,4.09,null],[-1,-1,2,0,7,21,null,4.13,null],[4,0,2,0,7,21,104.4,4.5,null],[2,10,0,8,9,18,686.1,4.22,null],[1,38,0,1,9,16,44.3,4.02,null],[9,18,2,0,7,21,599.1,3.79,null],[17,39,2,0,7,21,692.7,4.22,null],[1,30,4,3,9,14,48.3,4.28,null],[1,23,2,0,9,25,55.8,4.07,null],[3,34,2,0,9,25,268.7,4.13,null],[0,1,4,3,8,19,102.9,4.39,null],[2,10,4,3,8,21,686.1,4.04,null],[5,25,4,3,8,21,249.1,4.24,null],[9,40,4,3,8,20,565.7,4.15,null],[-1,-1,3,2,7,17,null,3.75,null],[3,36,3,9,8,17,274.7,4.32,null],[1,41,6,20,9,18,46.7,3.6,null],[13,4,3,2,8,15,165.2,4.58,null],[2,10,3,2,8,12,686.1,4.38,null],[0,5,5,6,9,16,155.5,4.21,null],[3,42,5,6,9,16,253.8,3.94,null],[3,42,5,6,9,16,253.8,4.41,null],[5,25,1,14,8,7,249.1,4.37,null],[0,35,1,11,8,19,156.6,3.62,null],[0,35,1,11,8,9,156.6,3.89,null],[8,24,2,0,6,24,399.7,4.02,null],[8,43,1,4,9,16,317.6,4.46,null],[3,36,2,0,7,21,274.7,4.46,null],[19,20,1,4,8,17,445.2,4.26,null],[3,16,1,4,8,18,245.4,4.18,null],[1,44,2,0,7,21,71.6,4.33,null],[1,27,2,0,7,21,64.8,4.01,null],[2,10,2,0,7,21,686.1,4.04,null],[5,25,2,0,7,21,249.1,4.2,null],[2,10,1,4,6,20,686.1,4.37,null],[6,15,0,8,5,21,642.4,4.02,null],[5,25,0,8,6,17,249.1,3.94,null],[5,25,5,6,7,14,249.1,4.44,null],[14,45,0,7,7,21,224.9,3.72,null],[1,26,1,4,8,16,54.1,4.04,null],[3,36,1,16,7,19,274.7,4.3,null],[2,10,3,15,7,6,686.1,4.53,null],[3,46,1,5,7,17,260.2,4.56,null],[6,47,1,11,7,19,628.4,4.35,null],[3,34,1,5,6,17,268.7,4.57,null],[0,48,5,6,9,16,140.9,4.29,null],[6,15,2,0,7,21,642.4,4.04,null],[18,17,1,5,8,16,518.9,3.61,null],[2,10,2,0,5,23,686.1,4.54,null],[6,15,2,0,5,16,642.4,4.07,null],[0,48,0,10,6,20,140.9,3.93,null],[10,37,1,18,6,20,201.1,4.34,null],[7,49,1,18,5,21,145.8,3.41,null],[12,9,1,11,6,18,465.0,3.92,null],[3,46,3,9,6,18,260.2,4.22,null],[0,5,1,4,5,17,155.5,3.65,null],[9,18,1,5,6,19,599.1,4.43,null],[19,50,1,5,5,17,300.7,3.92,null],[4,0,1,16,5,18,104.4,3.5,null],[0,1,2,0,5,23,102.9,4.18,null],[5,25,2,0,5,21,249.1,4.43,null],[7,6,2,0,5,19,142.7,3.56,null],[0,1,4,3,7,20,102.9,3.89,null],[15,14,2,0,5,21,195.4,4.7,null],[9,18,0,10,5,21,599.1,4.27,null],[8,24,4,23,6,17,399.7,4.35,null],[7,51,1,19,4,20,105.3,3.7,null],[0,1,5,6,7,18,102.9,3.8,null],[12,9,4,3,6,20,465.0,3.81,null],[3,36,2,0,6,24,274.7,4.41,null],[3,36,1,5,5,19,274.7,3.76,null],[2,10,1,5,5,19,686.1,4.25,null],[0,5,4,3,5,20,155.5,4.03,null],[20,31,4,3,5,21,696.3,3.66,null],[10,37,4,3,5,21,201.1,4.19,null],[8,24,3,15,6,18,399.7,4.35,null],[18,17,3,2,6,18,518.9,3.72,null],[2,10,0,10,4,21,686.1,3.8,null],[1,27,7,22,10,8,64.8,4.4,null],[7,6,0,1,6,18,142.7,3.99,null],[2,10,0,1,6,18,686.1,4.28,null],[1,23,3,15,5,18,55.8,3.97,null],[1,27,1,25,6,19,64.8,3.72,null],[18,17,2,0,6,24,518.9,4.22,null],[4,0,2,0,6,24,104.4,3.97,null],[5,25,4,3,6,19,249.1,3.49,null],[0,1,0,1,6,18,102.9,4.58,null],[0,35,0,7,6,20,156.6,4.22,null],[0,52,0,1,6,17,118.0,3.83,null],[12,9,1,16,6,18,465.0,4.14,null],[0,53,0,7,6,20,94.8,4.08,null],[5,54,0,7,6,20,296.2,3.8,null],[8,55,0,1,6,18,360.9,4.5,null],[1,23,2,0,5,23,55.8,4.17,null],[1,56,2,0,3,23,89.2,3.38,null],[2,10,5,6,6,18,686.1,3.49,null],[9,18,0,1,6,18,599.1,4.16,null],[0,48,0,1,6,18,140.9,3.82,null],[8,24,1,4,7,23,399.7,4.08,null],[1,23,3,9,6,20,55.8,3.99,null],[8,24,5,6,4,18,399.7,3.8,null],[4,57,3,2,4,18,114.2,3.91,null],[2,10,0,1,5,19,686.1,4.2,null],[3,36,1,16,5,15,274.7,4.47,null],[15,14,1,16,6,18,195.4,null,null],[9,18,0,1,4,20,599.1,3.63,null],[7,6,2,0,4,21,142.7,3.99,null],[4,0,1,4,4,20,104.4,3.97,null],[0,48,0,1,5,19,140.9,4.09,null],[4,0,0,7,5,21,104.4,3.97,null],[6,15,0,7,5,21,642.4,3.84,null],[5,25,0,17,null,19,249.1,null,null],[11,32,0,1,5,19,325.6,4.28,null],[1,44,2,0,2,25,71.6,3.6,null],[6,15,3,2,6,18,642.4,4.17,null],[1,30,4,23,4,21,48.3,4.09,null],[9,58,1,16,4,17,547.9,4.48,null],[0,1,1,14,4,19,102.9,3.15,null],[0,1,3,2,5,18,102.9,3.96,null],[3,16,0,24,4,21,245.4,3.75,null],[0,1,0,7,4,21,102.9,4.17,null],[2,10,0,8,1,18,686.1,null,null],[-1,-1,0,12,4,18,null,3.42,null],[5,25,4,3,4,14,249.1,3.31,null],[14,59,0,1,4,20,233.7,3.62,null],[10,37,1,14,4,15,201.1,3.21,null],[5,60,1,16,3,17,356.5,3.4,null],[3,36,3,2,5,14,274.7,3.9,null],[2,10,3,9,5,16,686.1,4.04,null],[2,10,3,9,4,19,686.1,4.59,null],[1,26,3,9,4,18,54.1,4.44,null],[9,61,0,10,2,21,595.9,4.17,null],[21,62,3,2,4,18,434.7,4.34,null],[8,55,4,21,3,17,360.9,4.41,null],[4,0,0,12,4,17,104.4,3.51,null],[1,27,0,7,3,20,64.8,3.59,null],[12,9,1,19,4,17,465.0,4.35,null],[-1,-1,0,8,4,20,null,3.95,null],[1,30,0,1,2,20,48.3,4.1,null],[10,37,5,6,4,18,201.1,4.22,null],[3,34,3,15,4,17,268.7,4.57,null],[4,0,2,0,4,26,104.4,3.85,null],[9,18,4,3,4,18,599.1,4.45,null],[8,24,2,0,3,25,399.7,4.1,null],[17,63,2,0,4,26,654.5,3.97,null],[0,64,1,16,3,13,88.3,null,null],[14,59,3,15,4,17,233.7,4.48,null],[6,15,0,1,3,17,642.4,4.3,null],[8,65,2,0,4,25,449.5,3.87,null],[4,0,2,0,3,25,104.4,3.8,null],[3,16,2,0,4,26,245.4,3.98,null],[1,23,2,0,3,25,55.8,3.79,null],[2,10,4,3,3,19,686.1,4.43,null],[1,23,1,5,3,20,55.8,3.92,null],[0,1,1,5,4,20,102.9,3.82,null],[3,34,1,16,4,17,268.7,3.95,null],[3,16,2,0,2,25,245.4,3.58,null],[6,15,1,18,4,14,642.4,4.42,null],[2,10,1,14,3,18,686.1,3.54,null],[3,42,4,23,1,18,253.8,null,null],[7,6,1,16,1,12,142.7,null,null],[1,23,0,1,4,13,55.8,3.14,null],[14,45,1,16,4,14,224.9,4.03,null],[3,66,1,4,3,20,198.2,4.41,null],[20,31,1,5,4,20,696.3,3.65,null],[10,37,3,2,4,18,201.1,3.85,null],[1,67,2,0,2,11,64.1,3.72,null],[4,0,3,2,5,18,104.4,3.09,null],[0,1,3,2,4,18,102.9,3.79,null],[1,68,0,1,3,20,104.1,3.58,null],[1,44,6,13,3,19,71.6,4.0,null],[3,36,3,2,4,19,274.7,4.5,null],[1,44,6,13,4,18,71.6,3.98,null],[1,27,6,13,3,18,64.8,3.5,null],[1,69,6,13,4,18,50.9,3.78,null],[3,36,6,13,4,17,274.7,3.85,null],[6,15,1,19,4,14,642.4,4.25,null],[3,16,0,17,3,20,245.4,4.52,null],[3,16,0,17,3,20,245.4,4.53,null],[6,15,3,9,1,18,642.4,null,null],[5,25,2,0,3,25,249.1,3.94,null],[1,23,2,0,2,25,55.8,3.6,null],[3,36,2,0,3,22,274.7,4.15,null],[1,44,0,10,4,21,71.6,3.94,null],[-1,-1,0,1,3,20,null,3.88,null],[5,25,4,3,3,19,249.1,4.02,null],[0,35,0,12,3,18,156.6,3.93,null],[4,70,2,0,3,25,129.6,3.99,null],[5,71,1,4,3,20,267.0,3.39,null],[5,25,1,4,4,20,249.1,3.37,null],[13,4,3,2,4,18,165.2,4.6,null],[5,25,2,0,3,22,249.1,4.51,null],[2,10,2,0,3,22,686.1,4.37,null],[6,15,2,0,3,25,642.4,4.03,null],[0,1,2,0,2,25,102.9,3.71,null],[21,72,3,2,3,18,388.9,4.11,null],[7,73,4,3,3,19,136.3,4.18,null],[9,18,0,17,4,20,599.1,4.27,null],[6,15,0,8,3,20,642.4,3.56,null],[2,10,0,24,3,21,686.1,3.99,null],[0,35,5,6,3,18,156.6,3.92,null],[11,32,0,7,3,18,325.6,3.85,null],[4,0,1,19,4,17,104.4,3.86,null],[0,1,2,0,3,25,102.9,3.82,null],[2,10,0,12,3,18,686.1,3.7,null],[2,10,3,15,1,18,686.1,null,null],[6,15,3,2,4,18,642.4,4.07,null],[0,1,2,0,3,22,102.9,4.54,null],[0,1,2,0,2,25,102.9,4.36,null],[1,27,1,19,2,18,64.8,4.52,null],[5,25,0,1,2,20,249.1,4.66,null],[20,31,0,8,2,20,696.3,2.79,null],[-2,-1,3,2,2,18,null,3.81,"Caracas"],[0,1,4,21,1,18,102.9,null,null],[9,18,4,3,2,18,599.1,3.82,null],[-2,-1,0,7,1,18,null,null,"Quito"],[4,0,1,16,2,17,104.4,4.07,null],[4,0,1,14,2,18,104.4,3.63,null],[8,24,1,4,2,21,399.7,4.37,null],[9,18,2,0,1,24,599.1,null,null],[6,15,2,0,2,25,642.4,3.83,null],[3,74,1,11,3,19,132.9,3.56,null],[6,15,3,15,1,18,642.4,null,null],[0,1,1,18,2,14,102.9,4.06,null],[2,10,1,11,2,21,686.1,4.62,null],[4,0,3,2,1,14,104.4,null,null],[2,10,2,0,1,24,686.1,null,null],[4,0,3,15,1,18,104.4,null,null],[2,75,0,8,2,20,689.8,3.73,null],[0,64,1,5,2,20,88.3,3.68,null],[8,24,0,12,2,18,399.7,3.82,null],[1,76,2,0,1,22,69.5,null,null],[3,36,3,15,1,18,274.7,null,null],[0,77,0,7,2,21,82.9,4.25,null],[10,37,0,24,2,20,201.1,4.0,null],[20,31,1,5,3,20,696.3,4.37,null],[11,32,1,5,3,21,325.6,4.2,null],[11,32,0,24,2,20,325.6,4.6,null],[4,57,0,8,2,21,114.2,3.88,null],[13,4,0,1,2,20,165.2,3.56,null],[-1,-1,1,19,2,18,null,4.22,null],[1,78,1,25,2,19,62.6,4.2,null],[8,24,4,3,2,18,399.7,4.68,null],[2,10,3,9,1,18,686.1,null,null],[3,16,4,3,2,18,245.4,3.91,null],[6,15,3,2,3,18,642.4,4.12,null],[1,79,4,21,2,17,48.2,4.38,null],[0,1,3,15,1,18,102.9,null,null],[11,32,1,4,1,16,325.6,null,null],[3,34,0,12,3,17,268.7,3.22,null],[2,80,0,10,1,12,666.8,null,null],[3,36,0,12,2,18,274.7,3.73,null],[20,31,0,7,1,18,696.3,null,null],[5,25,6,20,1,16,249.1,null,null],[5,25,0,7,2,20,249.1,4.08,null],[1,8,0,7,2,21,53.1,3.61,null],[-2,-1,3,15,1,18,null,null,"Quito"],[-1,-1,2,0,2,25,null,3.92,null],[5,25,1,18,1,18,249.1,null,null],[2,10,0,7,1,18,686.1,null,null],[4,0,0,7,2,21,104.4,4.49,null],[0,1,2,0,2,25,102.9,3.94,null],[1,27,1,16,1,18,64.8,null,null],[1,81,0,1,1,19,52.0,null,null],[3,36,8,26,1,10,274.7,null,null],[0,35,3,9,1,18,156.6,null,null],[4,0,1,14,2,15,104.4,4.44,null],[5,25,1,18,2,17,249.1,3.8,null],[0,35,1,4,1,18,156.6,null,null],[1,82,0,12,1,18,50.1,null,null],[8,55,0,12,2,18,360.9,3.68,null],[8,24,0,1,2,20,399.7,3.47,null],[5,83,1,4,1,18,344.3,null,null],[13,4,5,6,1,18,165.2,null,null],[-2,-1,3,9,1,18,null,null,"Washington"],[3,34,0,17,1,16,268.7,null,null],[16,3,0,7,1,18,548.3,null,null],[0,84,5,6,1,18,158.9,null,null],[2,10,1,5,2,17,686.1,3.8,null],[15,14,1,5,2,20,195.4,3.22,null],[-2,-1,0,7,1,18,null,null,"Caracas"],[3,34,1,14,1,18,268.7,null,null],[0,1,1,18,2,17,102.9,4.07,null],[15,14,1,4,1,18,195.4,null,null],[10,37,1,27,1,18,201.1,null,null],[7,85,3,9,1,18,97.7,null,null],[1,23,3,15,1,18,55.8,null,null],[10,37,3,9,1,18,201.1,null,null],[6,15,0,8,1,18,642.4,null,null],[0,48,6,20,1,18,140.9,null,null],[17,7,4,21,2,17,719.4,4.28,null],[-1,-1,0,7,1,18,null,null,null],[2,10,0,10,1,18,686.1,null,null],[5,25,0,8,1,18,249.1,null,null],[6,15,1,14,1,18,642.4,null,null],[0,35,1,5,1,18,156.6,null,null],[21,72,2,0,1,24,388.9,null,null],[2,10,4,21,1,18,686.1,null,null],[4,0,5,6,1,18,104.4,null,null],[2,75,1,4,1,18,689.8,null,null],[4,0,0,10,1,18,104.4,null,null],[3,36,4,3,1,18,274.7,null,null],[0,53,0,17,2,20,94.8,4.43,null],[2,10,3,9,1,18,686.1,null,null],[-1,-1,0,7,1,18,null,null,null],[2,10,1,11,1,18,686.1,null,null],[5,25,2,0,2,25,249.1,3.98,null],[0,35,2,0,2,25,156.6,3.79,null],[14,59,0,17,1,16,233.7,null,null],[0,1,4,3,1,18,102.9,null,null],[6,15,2,0,1,24,642.4,null,null],[2,10,0,1,1,18,686.1,null,null],[2,10,2,0,11,24,686.1,4.07,null],[1,8,2,0,10,19,53.1,3.54,null],[16,3,2,0,10,23,548.3,4.26,null],[19,20,2,0,1,24,445.2,null,null],[-2,-1,0,12,1,18,null,null,"Londres"],[0,5,2,0,11,24,155.5,3.78,null],[5,25,2,0,11,24,249.1,3.78,null],[8,55,4,3,9,10,360.9,4.12,null],[2,10,1,11,9,18,686.1,3.73,null],[7,6,2,0,13,33,142.7,3.94,null],[1,44,2,0,12,33,71.6,4.25,null],[5,25,2,0,9,25,249.1,3.76,null],[1,23,5,6,1,18,55.8,null,null],[4,0,2,0,14,33,104.4,4.52,null],[5,25,2,0,12,33,249.1,4.16,null],[5,25,2,0,11,24,249.1,3.74,null],[8,24,2,0,11,24,399.7,4.17,null],[3,36,1,11,1,18,274.7,null,null],[1,23,5,28,1,15,55.8,null,null],[1,68,2,0,14,33,104.1,4.25,null],[20,86,2,0,12,33,622.7,4.06,null],[7,6,2,0,11,24,142.7,4.37,null],[5,83,0,8,1,18,344.3,null,null],[6,15,2,0,13,33,642.4,null,null],[10,87,2,0,11,24,167.1,3.9,null],[3,16,2,0,11,24,245.4,4.0,null],[0,1,3,2,9,17,102.9,4.14,null],[6,22,2,0,13,33,472.0,4.17,null],[3,88,2,0,13,33,213.3,4.11,null],[11,32,2,0,9,23,325.6,3.64,null],[1,23,1,14,1,18,55.8,null,null],[5,21,0,8,1,18,403.1,null,null],[11,32,3,15,1,18,325.6,null,null],[4,0,2,0,13,33,104.4,4.12,null],[3,66,2,0,13,33,198.2,4.56,null],[2,10,3,15,1,18,686.1,null,null],[11,32,2,0,11,24,325.6,3.65,null],[5,25,2,0,13,33,249.1,4.11,null],[9,89,2,0,13,33,329.3,4.03,null],[10,37,1,5,1,18,201.1,null,null],[0,90,2,0,13,33,97.6,4.4,null],[1,27,2,0,11,24,64.8,3.83,null],[6,15,2,0,13,33,642.4,4.08,null],[5,91,3,2,9,17,265.9,null,null],[5,83,0,1,8,16,344.3,3.97,null],[4,0,0,1,9,16,104.4,3.98,null],[10,37,2,0,13,33,201.1,4.09,null],[3,36,2,0,13,33,274.7,4.18,null],[15,14,4,21,1,18,195.4,null,null],[11,92,2,0,11,24,240.3,3.79,null],[12,9,7,22,10,15,465.0,4.29,null],[1,79,0,12,1,18,48.2,null,null],[3,93,4,3,8,20,251.4,4.23,null],[9,18,4,3,5,18,599.1,null,null],[2,10,2,0,10,23,686.1,3.83,null],[10,94,2,0,10,23,131.4,4.01,null],[22,95,2,0,8,25,330.3,3.73,null],[8,24,1,11,9,18,399.7,4.02,null],[7,6,2,0,13,33,142.7,4.09,null],[0,35,0,12,5,20,156.6,3.81,null],[8,24,3,9,9,17,399.7,4.48,null],[17,7,3,2,8,16,719.4,3.28,null],[6,15,2,0,14,33,642.4,4.03,null],[9,18,2,0,10,19,599.1,3.52,null],[11,32,2,0,12,33,325.6,4.64,null],[3,88,0,1,6,18,213.3,4.24,null],[4,0,4,3,9,8,104.4,3.37,null],[3,36,4,3,9,9,274.7,3.85,null],[0,5,4,3,10,16,155.5,4.17,null],[11,96,1,14,3,16,311.8,3.8,null],[-1,-1,4,3,10,7,null,3.86,null],[4,0,1,4,9,6,104.4,4.14,null],[5,25,1,4,9,16,249.1,4.51,null],[8,24,1,11,9,18,399.7,3.65,null],[5,83,6,20,10,15,344.3,4.02,null],[1,23,6,20,6,19,55.8,3.82,null],[1,23,2,0,9,25,55.8,3.8,null],[4,0,2,0,9,25,104.4,3.97,null],[2,97,2,0,9,25,665.1,4.4,null],[0,1,2,0,6,24,102.9,4.23,null],[3,98,2,0,13,33,252.4,3.94,null],[7,6,2,0,10,18,142.7,4.0,null],[3,16,2,0,12,33,245.4,3.78,null],[-1,-1,2,0,14,33,null,4.27,null],[1,30,1,14,9,16,48.3,3.9,null],[10,87,1,4,10,16,167.1,3.8,null],[-1,-1,0,8,9,16,null,3.68,null],[2,10,4,3,9,18,686.1,4.29,null],[4,0,3,2,8,19,104.4,4.17,null],[12,9,2,0,10,23,465.0,3.94,null],[13,4,2,0,10,23,165.2,4.34,null],[1,27,2,0,9,25,64.8,3.92,null],[16,99,2,0,8,4,626.4,3.64,null],[0,1,3,2,9,9,102.9,4.33,null],[1,23,4,3,10,2,55.8,3.45,null],[1,69,0,12,8,12,50.9,3.46,null],[-1,-1,0,1,7,7,null,null,null],[9,18,2,0,10,23,599.1,4.29,null],[1,23,5,6,9,16,55.8,4.35,null],[0,1,1,16,9,16,102.9,4.31,null],[6,15,1,16,9,16,642.4,4.42,null],[0,1,0,8,7,13,102.9,3.43,null],[8,100,3,2,9,17,342.4,4.53,null],[0,101,1,14,8,6,74.4,4.01,null],[-1,-1,0,8,9,19,null,4.51,null],[6,15,0,1,8,18,642.4,4.21,null],[5,25,0,1,8,18,249.1,4.06,null],[12,2,2,0,10,23,464.2,4.58,null],[3,34,3,2,9,17,268.7,4.48,null],[6,15,3,9,9,17,642.4,4.17,null],[5,25,0,1,8,18,249.1,3.88,null],[4,0,3,9,7,19,104.4,3.6,null],[1,27,1,11,null,20,64.8,3.32,null],[4,0,2,0,10,23,104.4,3.89,null],[9,18,2,0,8,25,599.1,3.86,null],[0,1,3,9,9,17,102.9,4.1,null],[-1,-1,3,9,9,17,null,4.04,null],[10,37,5,6,10,16,201.1,4.04,null],[0,5,5,6,10,16,155.5,4.22,null],[9,18,3,2,8,18,599.1,4.13,null],[4,0,3,9,7,18,104.4,3.65,null],[2,10,0,1,9,16,686.1,4.53,null],[1,44,0,1,9,16,71.6,4.22,null],[10,87,0,8,9,16,167.1,4.03,null],[0,5,4,3,9,9,155.5,3.65,null],[2,10,4,3,8,17,686.1,3.79,null],[6,15,4,3,9,7,642.4,4.37,null],[3,36,6,20,9,15,274.7,3.63,null],[2,10,2,0,9,25,686.1,4.11,null],[6,15,2,0,9,25,642.4,4.25,null],[-1,-1,2,0,9,25,null,4.08,null],[1,44,2,0,9,25,71.6,4.03,null],[7,102,1,5,8,16,212.7,4.32,null],[19,20,5,6,9,16,445.2,3.87,null],[1,44,0,12,8,18,71.6,4.0,null],[5,25,0,12,7,19,249.1,4.36,null],[4,0,2,0,5,21,104.4,4.14,null],[1,30,6,13,9,15,48.3,4.01,null],[1,23,6,13,9,15,55.8,3.9,null],[3,66,6,13,9,15,198.2,4.12,null],[1,23,6,13,9,15,55.8,3.88,null],[7,6,1,4,8,18,142.7,4.61,null],[1,44,2,0,6,24,71.6,4.21,null],[1,44,0,12,6,16,71.6,3.54,null],[0,5,0,8,6,19,155.5,3.25,null],[4,0,0,1,5,19,104.4,3.54,null],[4,0,1,5,5,17,104.4,3.65,null],[15,14,0,8,8,13,195.4,4.06,null],[5,25,0,8,8,21,249.1,4.31,null],[5,25,2,0,5,13,249.1,3.76,null],[9,18,5,6,4,17,599.1,3.97,null],[2,10,4,3,7,18,686.1,3.99,null],[4,103,1,4,7,18,276.0,3.92,null],[0,1,0,10,7,1,102.9,3.7,null],[4,0,3,2,7,16,104.4,4.67,null],[1,104,1,11,7,16,64.7,3.67,null],[0,1,0,7,5,19,102.9,3.86,null],[16,105,1,11,6,22,593.5,3.31,null],[1,23,1,5,7,9,55.8,3.64,null],[4,0,1,11,7,20,104.4,3.58,null],[22,106,1,4,7,14,306.3,4.0,null],[3,16,1,4,9,16,245.4,4.07,null],[0,107,7,22,6,16,96.0,4.23,null],[14,59,0,17,4,20,233.7,4.24,null],[2,10,1,5,8,6,686.1,3.69,null],[3,34,5,6,8,16,268.7,3.95,null],[3,16,1,4,9,16,245.4,4.3,null],[12,108,3,15,7,11,391.3,3.83,null],[1,44,3,15,7,18,71.6,4.5,null],[4,0,3,15,6,18,104.4,4.37,null],[1,109,3,9,7,18,41.0,4.46,null],[1,23,3,15,7,18,55.8,4.3,null],[6,15,0,1,8,13,642.4,4.28,null],[5,25,2,0,7,21,249.1,4.26,null],[2,10,0,1,6,19,686.1,3.74,null],[4,0,3,2,5,18,104.4,3.51,null],[3,46,2,0,7,21,260.2,4.52,null],[12,9,3,2,7,18,465.0,4.05,null],[1,23,3,2,7,18,55.8,4.43,null],[1,44,6,13,6,18,71.6,4.43,null],[22,95,1,4,7,17,330.3,3.83,null],[0,1,0,7,8,19,102.9,4.19,null],[3,36,2,0,9,25,274.7,4.61,null],[0,110,2,0,7,21,88.3,4.05,null],[5,25,3,9,6,17,249.1,3.32,null],[1,30,4,3,7,20,48.3,3.79,null],[4,57,0,8,5,20,114.2,3.65,null],[0,5,0,1,6,18,155.5,4.48,null],[2,10,0,1,6,18,686.1,3.93,null],[0,1,0,1,6,18,102.9,3.89,null],[0,1,0,1,6,18,102.9,4.14,null],[5,25,0,1,7,21,249.1,null,null],[0,1,0,10,5,20,102.9,3.99,null],[8,24,0,12,5,21,399.7,3.7,null],[0,5,1,4,6,17,155.5,4.22,null],[7,6,1,4,7,16,142.7,4.15,null],[0,1,1,4,5,16,102.9,3.6,null],[2,10,5,6,7,16,686.1,4.6,null],[3,16,1,14,7,14,245.4,3.14,null],[10,37,5,6,6,18,201.1,4.01,null],[0,111,0,1,6,18,96.6,4.18,null],[4,0,0,1,5,18,104.4,3.74,null],[7,6,0,1,6,18,142.7,3.94,null],[4,0,0,10,4,20,104.4,3.89,null],[5,25,0,10,6,20,249.1,3.99,null],[0,1,0,10,5,20,102.9,3.79,null],[1,112,0,1,6,18,45.3,3.97,null],[2,10,1,14,6,18,686.1,3.61,null],[6,15,6,20,6,19,642.4,3.86,null],[1,23,5,6,6,18,55.8,4.23,null],[7,6,1,4,6,17,142.7,3.6,null],[21,62,3,2,8,18,434.7,4.01,null],[20,31,0,12,1,18,696.3,null,null],[6,15,3,2,2,18,642.4,3.07,null],[13,4,1,14,7,18,165.2,4.2,null],[5,25,1,16,7,19,249.1,3.35,null],[0,113,4,3,6,19,62.7,4.02,null],[6,22,3,9,7,18,472.0,3.82,null],[6,15,1,4,4,20,642.4,3.25,null],[12,9,0,7,8,18,465.0,4.37,null],[13,4,3,15,7,18,165.2,4.42,null],[0,1,0,7,1,18,102.9,null,null],[8,114,1,4,5,16,341.1,3.38,null],[8,24,2,0,3,24,399.7,4.2,null],[4,0,0,8,6,20,104.4,4.27,null],[4,0,3,15,4,18,104.4,3.7,null],[9,18,2,0,6,24,599.1,4.15,null],[14,115,4,3,5,20,220.8,4.47,null],[0,1,2,0,6,24,102.9,4.17,null],[9,58,2,0,6,24,547.9,3.88,null],[2,10,0,10,5,21,686.1,3.71,null],[4,0,0,7,4,21,104.4,3.85,null],[5,25,4,3,4,19,249.1,4.32,null],[3,16,1,4,4,20,245.4,3.47,null],[4,0,1,4,4,17,104.4,4.35,null],[-1,-1,2,0,5,21,null,4.12,null],[11,32,5,6,6,18,325.6,4.08,null],[6,15,0,7,5,22,642.4,4.04,null],[2,10,0,7,5,21,686.1,4.42,null],[1,30,6,13,5,18,48.3,4.05,null],[3,36,5,6,6,17,274.7,4.64,null],[2,10,5,6,6,18,686.1,4.22,null],[7,116,0,1,4,20,122.8,3.66,null],[11,32,0,1,4,20,325.6,4.31,null],[1,23,0,8,5,21,55.8,4.12,null],[5,25,0,1,4,20,249.1,4.18,null],[1,30,1,14,4,17,48.3,3.85,null],[0,1,2,0,4,24,102.9,3.31,null],[6,15,0,1,5,19,642.4,4.38,null],[4,0,1,14,5,16,104.4,3.5,null],[6,15,2,0,5,21,642.4,3.92,null],[5,25,0,12,4,19,249.1,4.48,null],[5,83,2,0,5,21,344.3,4.18,null],[0,5,3,2,4,18,155.5,4.17,null],[14,115,3,2,5,18,220.8,4.5,null],[14,45,3,2,5,18,224.9,4.45,null],[1,41,6,13,5,18,46.7,4.17,null],[1,23,0,24,5,22,55.8,4.09,null],[5,25,3,2,4,18,249.1,4.11,null],[8,24,3,2,4,18,399.7,4.23,null],[4,0,0,12,4,19,104.4,4.41,null],[1,117,6,13,5,18,62.7,3.65,null],[0,1,5,6,5,18,102.9,4.13,null],[1,30,6,13,5,18,48.3,4.02,null],[0,35,1,11,5,20,156.6,4.44,null],[13,4,0,1,5,19,165.2,4.36,null],[1,68,0,10,4,21,104.1,4.21,null],[8,24,3,15,5,19,399.7,4.27,null],[1,27,7,22,10,8,64.8,4.5,null],[12,9,2,0,1,24,465.0,null,null],[0,1,2,0,2,12,102.9,3.63,null],[7,6,0,1,4,20,142.7,4.33,null],[4,0,0,1,3,20,104.4,3.9,null],[4,0,0,10,2,20,104.4,4.5,null],[3,36,0,17,3,14,274.7,null,null],[2,10,2,0,3,22,686.1,3.74,null],[-1,-1,0,10,5,21,null,3.74,null],[0,52,0,1,4,20,118.0,4.18,null],[0,1,0,8,4,20,102.9,3.55,null],[6,15,3,2,4,17,642.4,4.58,null],[8,24,2,0,3,25,399.7,4.47,null],[1,23,6,13,4,18,55.8,3.77,null],[4,0,4,21,1,18,104.4,null,null],[2,10,0,7,3,21,686.1,3.5,null],[21,62,0,7,3,21,434.7,4.4,null],[-2,-1,0,7,3,21,null,3.74,"Ontario"],[1,23,6,13,3,19,55.8,3.73,null],[9,18,0,1,1,17,599.1,null,null],[7,6,2,0,3,25,142.7,3.81,null],[10,37,0,10,4,21,201.1,3.51,null],[-1,-1,0,10,4,21,null,4.24,null],[1,23,6,13,4,18,55.8,3.85,null],[1,23,6,13,3,18,55.8,3.47,null],[1,30,1,4,3,20,48.3,4.19,null],[-1,-1,2,0,3,25,null,4.23,null],[1,23,6,13,4,18,55.8,3.74,null],[4,0,0,8,4,20,104.4,3.78,null],[11,32,0,8,4,20,325.6,null,null],[1,44,6,13,4,18,71.6,3.34,null],[0,1,1,4,3,20,102.9,3.41,null],[1,23,6,13,3,19,55.8,3.95,null],[1,68,0,10,3,23,104.1,3.79,null],[5,25,1,19,3,17,249.1,4.05,null],[2,75,1,18,4,20,689.8,4.51,null],[16,3,0,17,4,20,548.3,4.22,null],[3,36,0,10,4,21,274.7,3.76,null],[0,110,0,10,4,21,88.3,4.11,null],[2,10,4,3,4,18,686.1,4.56,null],[1,44,1,18,3,19,71.6,4.54,null],[0,5,4,3,4,19,155.5,4.54,null],[0,1,1,4,4,20,102.9,4.15,null],[4,0,1,4,3,21,104.4,3.42,null],[1,27,1,4,4,20,64.8,3.83,null],[18,17,3,15,6,18,518.9,4.15,null],[0,35,3,2,5,18,156.6,4.2,null],[-1,-1,1,5,6,20,null,3.66,null],[7,6,3,9,4,19,142.7,4.42,null],[5,25,0,10,3,21,249.1,3.77,null],[5,83,5,6,3,18,344.3,3.56,null],[0,35,5,6,4,17,156.6,3.96,null],[1,44,2,0,3,22,71.6,3.88,null],[7,6,1,25,3,17,142.7,3.61,null],[1,44,1,5,5,19,71.6,3.78,null],[0,118,1,16,4,17,83.6,4.38,null],[19,20,0,12,4,19,445.2,4.17,null],[1,44,1,11,4,20,71.6,3.65,null],[2,10,1,18,3,19,686.1,3.61,null],[3,16,0,1,4,20,245.4,3.81,null],[19,50,1,11,3,17,300.7,3.54,null],[0,5,0,12,3,18,155.5,4.14,null],[12,9,4,3,3,19,465.0,3.39,null],[0,1,0,7,2,21,102.9,4.38,null],[0,35,1,14,3,15,156.6,3.83,null],[1,27,6,13,3,19,64.8,3.65,null],[2,10,3,2,3,18,686.1,4.42,null],[1,23,3,2,2,18,55.8,4.07,null],[1,41,1,19,3,17,46.7,4.05,null],[3,36,0,1,3,20,274.7,3.67,null],[2,10,0,17,4,20,686.1,4.14,null],[0,35,5,6,3,18,156.6,4.1,null],[10,37,0,8,4,20,201.1,3.91,null],[12,9,0,1,3,20,465.0,3.86,null],[10,37,0,12,2,18,201.1,3.99,null],[0,48,0,1,2,17,140.9,3.87,null],[6,15,4,3,3,19,642.4,4.23,null],[9,18,4,3,3,19,599.1,4.46,null],[10,37,7,22,2,18,201.1,3.43,null],[5,25,0,8,2,21,249.1,4.24,null],[3,36,0,12,3,15,274.7,3.39,null],[11,32,0,17,4,20,325.6,4.54,null],[2,11,0,17,5,18,677.2,4.53,null],[4,0,5,6,3,18,104.4,3.61,null],[2,10,1,4,1,18,686.1,null,null],[14,115,1,18,3,15,220.8,3.1,null],[3,16,2,0,1,24,245.4,null,null],[4,0,2,0,1,22,104.4,null,null],[4,0,4,21,2,17,104.4,3.84,null],[1,69,0,17,3,20,50.9,4.04,null],[13,4,0,10,2,17,165.2,3.62,null],[18,17,3,2,1,18,518.9,null,null],[4,0,0,10,2,18,104.4,3.2,null],[15,14,0,1,2,20,195.4,4.13,null],[0,1,1,18,3,17,102.9,4.75,null],[17,119,1,16,2,13,677.2,3.44,null],[6,15,3,9,4,18,642.4,4.43,null],[1,117,6,13,2,18,62.7,3.85,null],[7,6,0,1,2,20,142.7,3.5,null],[1,23,6,20,2,20,55.8,3.87,null],[4,0,0,24,1,18,104.4,null,null],[1,27,6,13,2,18,64.8,4.32,null],[0,35,4,3,1,20,156.6,null,null],[4,0,0,7,1,18,104.4,null,null],[9,120,5,6,4,18,379.4,4.01,null],[-2,-1,5,6,4,17,null,3.88,"Ciudad de México"],[4,0,0,1,2,20,104.4,3.2,null],[1,8,0,1,2,20,53.1,3.52,null],[8,24,0,10,2,18,399.7,4.06,null],[0,1,3,9,2,18,102.9,4.28,null],[0,1,0,7,1,18,102.9,null,null],[6,15,1,11,1,18,642.4,null,null],[0,35,0,10,2,21,156.6,3.87,null],[5,25,0,17,2,20,249.1,4.11,null],[3,36,1,11,3,19,274.7,4.69,null],[3,36,1,11,3,18,274.7,3.93,null],[2,10,3,2,3,18,686.1,3.99,null],[11,121,0,1,2,19,341.2,4.18,null],[3,16,0,10,2,20,245.4,3.52,null],[1,44,1,16,2,9,71.6,3.38,null],[2,10,1,14,3,18,686.1,4.71,null],[10,37,1,11,3,19,201.1,3.98,null],[5,25,0,12,3,18,249.1,4.19,null],[4,0,1,5,2,20,104.4,3.38,null],[0,1,1,5,2,20,102.9,4.08,null],[7,6,2,0,1,24,142.7,null,null],[21,72,1,5,1,18,388.9,null,null],[14,59,0,17,1,16,233.7,null,null],[13,122,4,21,1,18,155.6,null,null],[4,0,4,3,1,18,104.4,null,null],[10,37,1,14,2,18,201.1,4.13,null],[5,25,0,1,2,21,249.1,3.14,null],[4,0,1,19,2,15,104.4,3.88,null],[7,6,1,14,2,18,142.7,4.32,null],[8,24,1,11,2,21,399.7,4.56,null],[1,23,1,11,1,18,55.8,null,null],[15,14,2,0,2,25,195.4,4.31,null],[0,1,1,16,2,16,102.9,3.96,null],[2,10,4,23,1,18,686.1,null,null],[4,0,1,25,2,18,104.4,4.06,null],[0,1,5,6,2,18,102.9,3.71,null],[7,102,1,4,2,19,212.7,3.86,null],[1,8,0,7,2,21,53.1,3.94,null],[3,16,4,3,3,20,245.4,3.51,null],[0,48,4,23,3,17,140.9,2.33,null],[3,36,1,4,1,21,274.7,null,null],[1,23,6,20,1,18,55.8,null,null],[5,21,0,1,2,20,403.1,4.27,null],[15,14,0,12,2,16,195.4,3.68,null],[16,3,1,4,2,20,548.3,3.93,null],[0,5,0,10,2,18,155.5,2.78,null],[5,25,1,4,1,18,249.1,null,null],[1,76,6,13,1,19,69.5,null,null],[0,1,1,5,3,20,102.9,3.84,null],[0,1,0,17,1,16,102.9,null,null],[1,69,1,14,1,18,50.9,null,null],[2,10,1,11,1,18,686.1,null,null],[4,0,0,7,1,18,104.4,null,null],[1,123,1,25,1,18,75.0,null,null],[6,15,1,16,3,14,642.4,4.23,null],[-1,-1,5,6,1,18,null,null,null],[5,25,5,6,3,18,249.1,null,null],[4,0,1,18,2,17,104.4,3.93,null],[4,0,0,10,1,18,104.4,null,null],[10,37,2,0,2,25,201.1,4.35,null],[0,5,2,0,2,25,155.5,4.12,null],[1,23,0,7,1,18,55.8,null,null],[1,23,1,5,3,21,55.8,3.87,null],[5,25,0,12,1,18,249.1,null,null],[3,34,1,5,1,18,268.7,null,null],[1,23,6,13,2,18,55.8,3.75,null],[1,23,1,16,1,18,55.8,null,null],[0,5,3,9,1,18,155.5,null,null],[17,7,3,9,2,16,719.4,4.21,null],[-2,-1,2,0,1,24,null,null,"Ciudad de Panamá"],[3,36,3,15,2,18,274.7,4.1,null],[4,0,0,10,1,18,104.4,null,null],[6,15,5,6,1,18,642.4,null,null],[0,5,4,3,1,18,155.5,null,null],[14,59,0,17,1,15,233.7,null,null],[2,10,1,5,1,18,686.1,null,null],[6,15,1,11,9,16,642.4,3.88,null],[2,10,1,18,1,18,686.1,null,null],[11,32,0,7,1,18,325.6,null,null],[0,124,1,5,2,20,170.2,4.03,null],[17,119,1,16,2,13,677.2,3.38,null],[7,6,1,11,2,21,142.7,4.32,null],[3,36,2,0,1,24,274.7,null,null],[4,0,1,18,2,17,104.4,3.5,null],[1,26,1,16,2,17,54.1,4.3,null],[12,9,2,0,2,25,465.0,3.98,null],[0,1,2,0,1,24,102.9,null,null],[5,25,0,1,1,18,249.1,null,null],[1,44,1,4,1,18,71.6,null,null],[2,10,1,14,1,18,686.1,null,null],[5,21,6,13,1,20,403.1,null,null],[6,15,2,0,1,24,642.4,null,null],[1,23,1,16,1,18,55.8,null,null],[6,15,3,9,1,18,642.4,null,null],[0,1,1,11,1,19,102.9,null,null],[6,15,2,0,1,24,642.4,null,null],[6,15,2,0,1,24,642.4,null,null],[10,37,7,22,1,18,201.1,null,null],[0,1,0,24,1,18,102.9,null,null],[3,34,1,5,1,18,268.7,null,null],[13,4,1,5,1,18,165.2,null,null],[1,23,0,12,1,18,55.8,null,null],[5,25,1,4,1,18,249.1,null,null],[5,25,1,14,1,18,249.1,null,null],[23,125,1,5,1,18,185.2,null,null],[1,8,1,16,2,17,53.1,3.88,null],[2,10,3,2,2,18,686.1,3.73,null],[7,6,0,17,1,19,142.7,null,null],[6,15,0,7,1,18,642.4,null,null],[13,4,1,4,1,18,165.2,null,null],[2,75,1,19,3,15,689.8,4.36,null],[-1,-1,0,1,2,20,null,3.89,null],[1,23,3,2,2,18,55.8,4.06,null],[2,10,0,12,3,18,686.1,4.21,null],[11,32,1,4,8,22,325.6,4.41,null],[11,32,3,2,4,17,325.6,4.32,null],[14,115,4,23,5,17,220.8,4.55,null],[3,34,3,2,4,18,268.7,4.25,null],[2,10,1,5,7,18,686.1,4.39,null],[11,32,4,3,5,19,325.6,4.0,null],[0,1,0,8,6,22,102.9,4.59,null],[2,75,5,6,6,18,689.8,4.58,null],[4,0,3,2,6,18,104.4,4.41,null],[7,6,1,18,4,23,142.7,4.02,null],[0,1,3,2,3,18,102.9,4.13,null],[0,35,0,8,9,3,156.6,3.9,null],[11,32,3,2,6,19,325.6,4.34,null],[0,1,0,8,7,17,102.9,3.94,null],[0,5,3,9,7,20,155.5,4.26,null],[3,34,1,18,5,24,268.7,4.83,null],[1,23,1,18,4,20,55.8,4.19,null],[3,34,3,9,9,13,268.7,4.77,null],[2,10,4,3,7,20,686.1,4.24,null],[0,1,5,6,6,15,102.9,4.11,null],[4,0,1,5,9,16,104.4,4.41,null],[2,10,4,23,5,16,686.1,4.38,null],[6,15,7,22,3,21,642.4,4.42,null],[3,36,3,9,9,24,274.7,4.07,null],[2,10,3,2,7,18,686.1,3.93,null],[11,32,0,1,5,21,325.6,4.24,null],[2,10,3,9,8,21,686.1,4.48,null],[5,25,3,2,4,18,249.1,3.93,null],[0,1,1,5,9,16,102.9,3.87,null]],"geo":{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"k":"CAQUETA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-73.66,1.612],[-73.659,1.576],[-73.476,1.362],[-73.414,1.245],[-73.393,1.147],[-73.322,1.08],[-73.078,0.894],[-73.045,0.906],[-72.857,1.043],[-72.87,1.146],[-72.798,1.176],[-72.651,1.172],[-72.508,1.068],[-72.468,1.084],[-72.399,1.002],[-72.269,0.763],[-72.081,0.705],[-72.033,0.664],[-71.982,0.629],[-71.99,0.566],[-71.929,0.544],[-71.922,0.459],[-71.857,0.456],[-71.832,0.339],[-71.77,0.328],[-71.698,0.238],[-71.627,0.216],[-71.584,0.163],[-71.449,0.14],[-71.374,0.174],[-71.297,0.075],[-71.254,0.059],[-71.272,0.035],[-71.475,-0.012],[-71.549,0.022],[-71.705,-0.067],[-71.737,-0.164],[-71.711,-0.232],[-71.789,-0.271],[-72.02,-0.263],[-72.062,-0.325],[-72.143,-0.348],[-72.184,-0.462],[-72.23,-0.493],[-72.242,-0.605],[-72.317,-0.652],[-72.433,-0.567],[-72.539,-0.677],[-72.592,-0.693],[-72.745,-0.561],[-72.878,-0.618],[-72.956,-0.563],[-73.044,-0.535],[-73.113,-0.604],[-73.209,-0.624],[-73.335,-0.506],[-73.489,-0.528],[-73.571,-0.516],[-73.58,-0.455],[-73.677,-0.422],[-73.841,-0.398],[-73.999,-0.344],[-74.109,-0.236],[-74.157,-0.261],[-74.29,-0.198],[-74.352,-0.107],[-74.44,-0.075],[-74.541,-0.121],[-74.704,0.037],[-74.662,0.054],[-74.678,0.161],[-74.737,0.209],[-74.845,0.214],[-74.893,0.249],[-74.965,0.245],[-75.033,0.484],[-75.196,0.479],[-75.235,0.566],[-75.207,0.602],[-75.257,0.702],[-75.338,0.768],[-75.423,0.738],[-75.539,0.79],[-75.637,0.877],[-75.758,0.837],[-75.895,0.935],[-75.976,1.062],[-76.085,1.058],[-76.152,1.109],[-76.281,1.137],[-76.303,1.237],[-76.204,1.353],[-76.169,1.589],[-76.124,1.566],[-76.035,1.582],[-75.904,1.716],[-75.847,1.722],[-75.735,1.787],[-75.659,1.892],[-75.616,1.996],[-75.535,2.118],[-75.445,2.144],[-75.386,2.315],[-75.31,2.362],[-75.287,2.41],[-75.133,2.596],[-75.147,2.723],[-75.07,2.745],[-74.899,2.964],[-74.879,2.914],[-74.803,2.936],[-74.762,2.873],[-74.671,2.888],[-74.637,2.71],[-74.589,2.662],[-74.681,2.554],[-74.672,2.449],[-74.742,2.324],[-74.743,2.27],[-74.65,2.243],[-74.594,2.135],[-74.644,2.095],[-74.561,1.963],[-74.563,1.848],[-74.47,1.807],[-74.322,1.788],[-74.207,1.716],[-74.105,1.691],[-73.994,1.639],[-73.858,1.608],[-73.739,1.638],[-73.66,1.612]]]]}},{"type":"Feature","properties":{"k":"CAUCA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-76.056,3.223],[-76.091,3.199],[-76.073,3.05],[-76.021,3.005],[-76.029,2.941],[-75.896,2.855],[-75.823,2.835],[-75.806,2.769],[-75.748,2.719],[-75.84,2.558],[-75.823,2.483],[-75.863,2.426],[-75.98,2.503],[-76.034,2.402],[-76.127,2.381],[-76.146,2.294],[-76.122,2.224],[-76.209,2.198],[-76.303,2.284],[-76.385,2.269],[-76.425,2.129],[-76.554,2.14],[-76.589,2.108],[-76.587,2.0],[-76.625,1.974],[-76.588,1.866],[-76.434,1.791],[-76.37,1.732],[-76.381,1.667],[-76.245,1.683],[-76.169,1.589],[-76.204,1.353],[-76.303,1.237],[-76.281,1.137],[-76.152,1.109],[-76.085,1.058],[-76.166,1.03],[-76.213,0.979],[-76.401,0.98],[-76.423,0.96],[-76.544,1.037],[-76.562,1.073],[-76.54,1.204],[-76.586,1.305],[-76.602,1.414],[-76.697,1.444],[-76.886,1.373],[-76.921,1.346],[-76.928,1.483],[-76.834,1.615],[-76.936,1.729],[-77.239,1.658],[-77.33,1.686],[-77.281,1.86],[-77.204,1.952],[-77.332,2.05],[-77.308,2.108],[-77.323,2.222],[-77.46,2.286],[-77.488,2.195],[-77.554,2.202],[-77.734,2.134],[-77.835,2.176],[-77.848,2.26],[-77.917,2.412],[-77.929,2.641],[-77.908,2.681],[-77.79,2.73],[-77.736,2.787],[-77.671,2.936],[-77.691,3.0],[-77.562,3.163],[-77.498,3.216],[-77.43,3.254],[-77.347,3.14],[-77.316,3.174],[-77.234,3.108],[-77.101,3.185],[-76.938,3.114],[-76.909,3.201],[-76.811,3.207],[-76.677,3.099],[-76.546,3.106],[-76.493,3.176],[-76.456,3.326],[-76.343,3.28],[-76.229,3.277],[-76.191,3.227],[-76.056,3.223]]]]}},{"type":"Feature","properties":{"k":"PUTUMAYO"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-76.085,1.058],[-75.976,1.062],[-75.895,0.935],[-75.758,0.837],[-75.637,0.877],[-75.539,0.79],[-75.423,0.738],[-75.338,0.768],[-75.257,0.702],[-75.207,0.602],[-75.235,0.566],[-75.196,0.479],[-75.033,0.484],[-74.965,0.245],[-74.893,0.249],[-74.845,0.214],[-74.737,0.209],[-74.678,0.161],[-74.662,0.054],[-74.704,0.037],[-74.541,-0.121],[-74.44,-0.075],[-74.352,-0.107],[-74.29,-0.198],[-74.157,-0.261],[-74.109,-0.236],[-73.999,-0.344],[-73.841,-0.398],[-74.389,-0.553],[-74.538,-0.463],[-74.576,-0.396],[-74.726,-0.35],[-74.778,-0.209],[-74.855,-0.243],[-74.928,-0.229],[-75.069,-0.095],[-75.202,-0.045],[-75.276,-0.127],[-75.392,-0.102],[-75.57,-0.03],[-75.633,0.045],[-75.74,0.032],[-75.822,0.083],[-75.955,0.202],[-76.01,0.298],[-76.133,0.37],[-76.2,0.373],[-76.313,0.433],[-76.337,0.385],[-76.412,0.379],[-76.412,0.241],[-76.584,0.22],[-76.619,0.256],[-76.733,0.288],[-76.849,0.24],[-77.08,0.287],[-77.113,0.373],[-77.09,0.426],[-77.13,0.525],[-77.128,0.602],[-77.187,0.63],[-77.117,0.901],[-77.028,0.995],[-77.084,1.062],[-77.089,1.183],[-76.981,1.223],[-76.921,1.346],[-76.886,1.373],[-76.697,1.444],[-76.602,1.414],[-76.586,1.305],[-76.54,1.204],[-76.562,1.073],[-76.544,1.037],[-76.423,0.96],[-76.401,0.98],[-76.213,0.979],[-76.166,1.03],[-76.085,1.058]]]]}},{"type":"Feature","properties":{"k":"VALLE DEL CAUCA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-75.714,4.713],[-75.707,4.657],[-75.825,4.664],[-75.867,4.608],[-75.888,4.431],[-75.803,4.396],[-75.787,4.294],[-75.823,4.229],[-75.84,4.101],[-75.752,4.077],[-75.807,3.931],[-75.862,3.874],[-75.922,3.739],[-75.955,3.714],[-75.993,3.609],[-75.985,3.559],[-76.027,3.487],[-76.062,3.355],[-76.038,3.301],[-76.056,3.223],[-76.191,3.227],[-76.229,3.277],[-76.343,3.28],[-76.456,3.326],[-76.493,3.176],[-76.546,3.106],[-76.677,3.099],[-76.811,3.207],[-76.909,3.201],[-76.938,3.114],[-77.101,3.185],[-77.234,3.108],[-77.316,3.174],[-77.347,3.14],[-77.43,3.254],[-77.498,3.216],[-77.55,3.231],[-77.48,3.323],[-77.337,3.448],[-77.367,3.484],[-77.301,3.57],[-77.228,3.583],[-77.184,3.655],[-77.198,3.746],[-77.181,3.832],[-77.283,3.842],[-77.318,3.95],[-77.212,4.009],[-77.243,4.084],[-77.314,4.029],[-77.359,3.926],[-77.45,4.039],[-77.353,4.198],[-77.307,4.165],[-77.159,4.183],[-77.05,4.095],[-76.994,4.121],[-76.915,4.096],[-76.867,4.033],[-76.681,3.965],[-76.589,3.993],[-76.499,4.064],[-76.445,4.175],[-76.527,4.288],[-76.562,4.37],[-76.386,4.481],[-76.286,4.712],[-76.313,4.75],[-76.211,4.83],[-76.145,4.838],[-76.089,4.946],[-76.078,5.047],[-75.988,4.874],[-75.936,4.809],[-75.791,4.718],[-75.714,4.713]]]]}},{"type":"Feature","properties":{"k":"GUAINIA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-69.845,1.714],[-69.902,1.742],[-70.055,1.777],[-70.181,1.886],[-70.115,1.999],[-70.11,2.081],[-70.101,2.118],[-69.996,2.224],[-70.071,2.291],[-70.189,2.232],[-70.252,2.264],[-70.311,2.208],[-70.427,2.268],[-70.497,2.234],[-70.562,2.293],[-70.63,2.312],[-70.707,2.472],[-70.766,2.539],[-70.848,2.568],[-70.917,2.56],[-70.942,2.606],[-70.502,2.788],[-70.351,2.86],[-70.356,2.904],[-70.28,2.935],[-70.256,3.039],[-70.284,3.129],[-70.247,3.176],[-70.128,3.204],[-70.158,3.282],[-70.112,3.386],[-70.034,3.418],[-69.998,3.373],[-69.874,3.433],[-69.872,3.536],[-69.776,3.566],[-69.691,3.544],[-69.579,3.604],[-69.56,3.678],[-69.424,3.667],[-69.32,3.696],[-69.128,3.673],[-69.056,3.639],[-69.012,3.682],[-68.782,3.729],[-68.709,3.768],[-68.589,3.777],[-68.574,3.811],[-68.454,3.838],[-68.421,3.926],[-68.347,3.924],[-68.314,3.978],[-68.232,3.973],[-68.043,4.012],[-67.879,3.918],[-67.819,3.979],[-67.708,4.045],[-67.692,3.936],[-67.613,3.755],[-67.501,3.768],[-67.439,3.64],[-67.444,3.585],[-67.402,3.48],[-67.34,3.451],[-67.313,3.394],[-67.335,3.335],[-67.862,2.865],[-67.822,2.827],[-67.658,2.797],[-67.621,2.814],[-67.562,2.721],[-67.569,2.668],[-67.486,2.667],[-67.471,2.625],[-67.344,2.524],[-67.298,2.443],[-67.188,2.351],[-67.221,2.25],[-67.162,2.133],[-67.114,2.134],[-67.097,2.051],[-67.123,1.98],[-67.072,1.934],[-67.034,1.787],[-66.963,1.667],[-66.964,1.597],[-66.921,1.532],[-66.912,1.427],[-66.856,1.369],[-66.881,1.29],[-66.857,1.228],[-67.089,1.166],[-67.101,1.26],[-67.156,1.317],[-67.075,1.373],[-67.079,1.473],[-67.113,1.595],[-67.144,1.605],[-67.134,1.796],[-67.2,1.851],[-67.227,1.912],[-67.303,1.901],[-67.347,1.985],[-67.357,2.112],[-67.33,2.146],[-67.369,2.216],[-67.45,2.169],[-67.587,2.122],[-67.602,2.043],[-67.677,2.009],[-67.775,2.012],[-67.884,1.895],[-67.908,1.804],[-68.103,1.908],[-68.145,1.973],[-68.205,1.988],[-68.285,1.836],[-68.232,1.82],[-68.163,1.727],[-68.813,1.727],[-69.394,1.726],[-69.535,1.777],[-69.645,1.73],[-69.845,1.714]]]]}},{"type":"Feature","properties":{"k":"VICHADA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-67.708,4.045],[-67.819,3.979],[-67.879,3.918],[-68.043,4.012],[-68.232,3.973],[-68.314,3.978],[-68.347,3.924],[-68.421,3.926],[-68.454,3.838],[-68.574,3.811],[-68.589,3.777],[-68.709,3.768],[-68.782,3.729],[-69.012,3.682],[-69.056,3.639],[-69.128,3.673],[-69.32,3.696],[-69.424,3.667],[-69.56,3.678],[-69.579,3.604],[-69.691,3.544],[-69.776,3.566],[-69.872,3.536],[-69.874,3.433],[-69.998,3.373],[-70.034,3.418],[-70.112,3.386],[-70.158,3.282],[-70.128,3.204],[-70.247,3.176],[-70.284,3.129],[-70.256,3.039],[-70.28,2.935],[-70.356,2.904],[-70.351,2.86],[-70.502,2.788],[-70.584,2.84],[-70.721,2.75],[-70.822,2.813],[-70.936,2.788],[-70.959,2.843],[-71.055,2.852],[-71.077,2.883],[-71.078,3.295],[-71.078,3.973],[-71.078,4.899],[-71.002,4.98],[-70.942,5.126],[-70.865,5.143],[-70.694,5.283],[-70.678,5.364],[-70.358,5.587],[-70.264,5.564],[-70.153,5.601],[-70.057,5.702],[-69.848,5.999],[-69.836,6.041],[-69.536,6.046],[-69.428,6.108],[-69.345,6.145],[-69.31,6.09],[-69.237,6.08],[-69.123,6.192],[-69.044,6.222],[-68.876,6.167],[-68.831,6.18],[-68.643,6.129],[-68.597,6.163],[-68.379,6.186],[-68.296,6.166],[-68.258,6.197],[-68.094,6.232],[-68.026,6.197],[-67.925,6.24],[-67.835,6.317],[-67.769,6.295],[-67.615,6.287],[-67.534,6.259],[-67.457,6.189],[-67.494,6.127],[-67.412,6.011],[-67.589,5.839],[-67.631,5.733],[-67.637,5.645],[-67.599,5.545],[-67.625,5.477],[-67.801,5.358],[-67.85,5.304],[-67.823,5.247],[-67.855,5.138],[-67.806,5.055],[-67.838,4.948],[-67.818,4.707],[-67.845,4.645],[-67.857,4.525],[-67.791,4.467],[-67.764,4.361],[-67.806,4.315],[-67.797,4.23],[-67.708,4.045]]]]}},{"type":"Feature","properties":{"k":"CASANARE"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-69.836,6.041],[-69.848,5.999],[-70.057,5.702],[-70.153,5.601],[-70.264,5.564],[-70.358,5.587],[-70.678,5.364],[-70.694,5.283],[-70.865,5.143],[-70.942,5.126],[-71.002,4.98],[-71.078,4.899],[-71.212,4.817],[-71.579,4.674],[-71.598,4.645],[-71.736,4.574],[-71.814,4.574],[-71.868,4.505],[-71.999,4.382],[-72.158,4.442],[-72.304,4.407],[-72.405,4.318],[-72.554,4.336],[-72.58,4.301],[-72.77,4.333],[-72.772,4.37],[-72.897,4.475],[-72.968,4.599],[-73.017,4.635],[-73.053,4.737],[-73.077,4.812],[-73.015,5.002],[-72.971,4.98],[-72.903,5.068],[-72.973,5.146],[-72.897,5.26],[-72.88,5.35],[-72.812,5.383],[-72.688,5.282],[-72.502,5.445],[-72.397,5.57],[-72.301,5.507],[-72.288,5.606],[-72.226,5.668],[-72.31,5.794],[-72.459,5.851],[-72.416,5.903],[-72.326,5.935],[-72.366,6.037],[-72.375,6.15],[-72.412,6.188],[-72.371,6.32],[-72.339,6.346],[-72.367,6.307],[-72.344,6.227],[-72.293,6.204],[-72.278,6.136],[-72.138,6.067],[-71.961,6.167],[-71.88,6.16],[-71.777,6.193],[-71.667,6.192],[-71.534,6.214],[-71.488,6.202],[-71.417,6.243],[-71.345,6.232],[-71.219,6.299],[-71.097,6.277],[-70.984,6.229],[-70.787,6.251],[-70.723,6.217],[-70.557,6.245],[-70.531,6.23],[-70.38,6.302],[-70.313,6.28],[-70.199,6.295],[-70.121,6.258],[-70.03,6.162],[-69.983,6.158],[-69.836,6.041]]]]}},{"type":"Feature","properties":{"k":"AMAZONAS"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-69.433,-1.069],[-69.396,-1.137],[-69.429,-1.235],[-69.399,-1.366],[-69.428,-1.387],[-69.535,-2.002],[-69.668,-2.746],[-69.767,-3.299],[-69.934,-4.22],[-69.983,-4.19],[-70.089,-4.065],[-70.177,-4.035],[-70.183,-3.928],[-70.248,-3.895],[-70.279,-3.827],[-70.355,-3.801],[-70.486,-3.876],[-70.564,-3.824],[-70.653,-3.829],[-70.713,-3.796],[-70.439,-3.362],[-70.061,-2.76],[-70.076,-2.664],[-70.219,-2.657],[-70.26,-2.555],[-70.374,-2.498],[-70.439,-2.526],[-70.503,-2.478],[-70.629,-2.479],[-70.663,-2.359],[-70.841,-2.291],[-70.869,-2.228],[-70.936,-2.258],[-70.981,-2.214],[-71.037,-2.276],[-71.132,-2.289],[-71.127,-2.338],[-71.193,-2.383],[-71.23,-2.348],[-71.317,-2.38],[-71.399,-2.359],[-71.45,-2.285],[-71.608,-2.238],[-71.629,-2.21],[-71.732,-2.225],[-71.72,-2.165],[-71.833,-2.197],[-71.915,-2.368],[-72.016,-2.369],[-72.049,-2.339],[-72.121,-2.405],[-72.366,-2.493],[-72.4,-2.435],[-72.525,-2.422],[-72.632,-2.359],[-72.693,-2.452],[-72.763,-2.4],[-72.906,-2.445],[-72.983,-2.344],[-73.054,-2.367],[-73.157,-2.26],[-73.094,-2.044],[-73.121,-2.016],[-73.109,-1.884],[-73.157,-1.853],[-73.209,-1.758],[-73.335,-1.804],[-73.507,-1.732],[-73.541,-1.699],[-73.464,-1.589],[-73.507,-1.487],[-73.583,-1.376],[-73.632,-1.272],[-73.683,-1.241],[-73.774,-1.262],[-73.869,-1.225],[-73.905,-1.128],[-73.97,-1.126],[-74.027,-1.065],[-74.274,-0.98],[-74.267,-0.827],[-74.378,-0.64],[-74.389,-0.553],[-73.841,-0.398],[-73.677,-0.422],[-73.58,-0.455],[-73.571,-0.516],[-73.489,-0.528],[-73.335,-0.506],[-73.209,-0.624],[-73.113,-0.604],[-73.044,-0.535],[-72.956,-0.563],[-72.878,-0.618],[-72.745,-0.561],[-72.592,-0.693],[-72.539,-0.677],[-72.433,-0.567],[-72.317,-0.652],[-72.242,-0.605],[-72.23,-0.493],[-72.184,-0.462],[-72.143,-0.348],[-72.062,-0.325],[-72.02,-0.263],[-71.789,-0.271],[-71.711,-0.232],[-71.737,-0.164],[-71.705,-0.067],[-71.549,0.022],[-71.475,-0.012],[-71.272,0.035],[-71.254,0.059],[-71.185,0.097],[-71.137,0.007],[-70.999,-0.003],[-70.897,-0.103],[-70.945,-0.159],[-70.885,-0.211],[-70.879,-0.281],[-70.827,-0.365],[-70.739,-0.287],[-70.666,-0.35],[-70.637,-0.32],[-70.564,-0.37],[-70.517,-0.36],[-70.437,-0.478],[-70.268,-0.418],[-70.245,-0.47],[-70.32,-0.55],[-70.264,-0.582],[-70.252,-0.745],[-70.291,-0.807],[-70.225,-0.895],[-70.302,-0.978],[-70.238,-1.021],[-70.178,-1.1],[-70.127,-1.11],[-70.045,-0.98],[-69.961,-0.968],[-69.936,-1.096],[-69.839,-1.028],[-69.705,-1.048],[-69.68,-1.203],[-69.592,-1.146],[-69.566,-1.192],[-69.482,-1.214],[-69.433,-1.069]]]]}},{"type":"Feature","properties":{"k":"VAUPES"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-70.11,2.081],[-70.115,1.999],[-70.181,1.886],[-70.055,1.777],[-69.902,1.742],[-69.845,1.714],[-69.847,1.078],[-69.745,1.114],[-69.674,1.07],[-69.381,1.074],[-69.322,1.088],[-69.199,0.996],[-69.14,0.69],[-69.199,0.616],[-69.358,0.617],[-69.434,0.712],[-69.482,0.736],[-69.634,0.637],[-69.688,0.664],[-69.723,0.616],[-69.936,0.554],[-70.046,0.564],[-70.047,-0.11],[-70.066,-0.164],[-69.902,-0.338],[-69.83,-0.362],[-69.71,-0.454],[-69.612,-0.5],[-69.572,-0.633],[-69.612,-0.766],[-69.526,-0.869],[-69.528,-0.919],[-69.43,-1.016],[-69.433,-1.069],[-69.482,-1.214],[-69.566,-1.192],[-69.592,-1.146],[-69.68,-1.203],[-69.705,-1.048],[-69.839,-1.028],[-69.936,-1.096],[-69.961,-0.968],[-70.045,-0.98],[-70.127,-1.11],[-70.178,-1.1],[-70.238,-1.021],[-70.302,-0.978],[-70.225,-0.895],[-70.291,-0.807],[-70.252,-0.745],[-70.264,-0.582],[-70.32,-0.55],[-70.245,-0.47],[-70.268,-0.418],[-70.437,-0.478],[-70.517,-0.36],[-70.564,-0.37],[-70.637,-0.32],[-70.666,-0.35],[-70.739,-0.287],[-70.827,-0.365],[-70.879,-0.281],[-70.885,-0.211],[-70.945,-0.159],[-70.897,-0.103],[-70.999,-0.003],[-71.137,0.007],[-71.185,0.097],[-71.254,0.059],[-71.297,0.075],[-71.374,0.174],[-71.449,0.14],[-71.584,0.163],[-71.627,0.216],[-71.698,0.238],[-71.77,0.328],[-71.832,0.339],[-71.857,0.456],[-71.922,0.459],[-71.929,0.544],[-71.99,0.566],[-71.982,0.629],[-72.033,0.664],[-71.803,0.888],[-71.74,0.985],[-71.641,0.995],[-71.574,1.082],[-71.547,1.27],[-71.455,1.465],[-71.438,1.546],[-71.39,1.598],[-71.403,1.722],[-71.316,1.715],[-71.259,1.668],[-71.165,1.756],[-70.989,1.824],[-70.895,1.919],[-70.705,1.907],[-70.487,1.949],[-70.442,1.994],[-70.23,2.035],[-70.188,2.024],[-70.11,2.081]]]]}},{"type":"Feature","properties":{"k":"GUAVIARE"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-71.077,2.883],[-71.055,2.852],[-70.959,2.843],[-70.936,2.788],[-70.822,2.813],[-70.721,2.75],[-70.584,2.84],[-70.502,2.788],[-70.942,2.606],[-70.917,2.56],[-70.848,2.568],[-70.766,2.539],[-70.707,2.472],[-70.63,2.312],[-70.562,2.293],[-70.497,2.234],[-70.427,2.268],[-70.311,2.208],[-70.252,2.264],[-70.189,2.232],[-70.071,2.291],[-69.996,2.224],[-70.101,2.118],[-70.11,2.081],[-70.188,2.024],[-70.23,2.035],[-70.442,1.994],[-70.487,1.949],[-70.705,1.907],[-70.895,1.919],[-70.989,1.824],[-71.165,1.756],[-71.259,1.668],[-71.316,1.715],[-71.403,1.722],[-71.39,1.598],[-71.438,1.546],[-71.455,1.465],[-71.547,1.27],[-71.574,1.082],[-71.641,0.995],[-71.74,0.985],[-71.803,0.888],[-72.033,0.664],[-72.081,0.705],[-72.269,0.763],[-72.399,1.002],[-72.468,1.084],[-72.508,1.068],[-72.651,1.172],[-72.798,1.176],[-72.87,1.146],[-72.857,1.043],[-73.045,0.906],[-73.078,0.894],[-73.322,1.08],[-73.393,1.147],[-73.414,1.245],[-73.476,1.362],[-73.659,1.576],[-73.66,1.612],[-73.661,2.294],[-73.632,2.353],[-73.514,2.35],[-73.438,2.383],[-73.299,2.336],[-73.24,2.389],[-73.153,2.367],[-73.066,2.426],[-73.012,2.434],[-72.936,2.503],[-72.922,2.56],[-72.816,2.615],[-72.736,2.571],[-72.7,2.62],[-72.6,2.615],[-72.563,2.682],[-72.486,2.685],[-72.47,2.734],[-72.389,2.736],[-72.359,2.781],[-72.204,2.859],[-72.113,2.875],[-72.046,2.818],[-71.858,2.843],[-71.742,2.884],[-71.652,2.821],[-71.469,2.894],[-71.389,2.845],[-71.329,2.892],[-71.278,2.868],[-71.077,2.883]]]]}},{"type":"Feature","properties":{"k":"CALDAS"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-74.665,5.768],[-74.661,5.752],[-74.627,5.697],[-74.675,5.516],[-74.667,5.405],[-74.735,5.287],[-74.851,5.314],[-74.939,5.313],[-75.057,5.275],[-75.117,5.161],[-75.288,5.138],[-75.344,5.081],[-75.317,5.028],[-75.352,4.939],[-75.324,4.866],[-75.375,4.802],[-75.428,4.816],[-75.483,4.917],[-75.714,4.956],[-75.747,5.047],[-75.814,4.919],[-75.89,4.96],[-75.917,5.079],[-75.802,5.198],[-75.803,5.281],[-75.693,5.255],[-75.648,5.308],[-75.74,5.397],[-75.811,5.361],[-75.858,5.378],[-75.868,5.49],[-75.73,5.564],[-75.69,5.519],[-75.57,5.523],[-75.599,5.737],[-75.479,5.664],[-75.377,5.674],[-75.276,5.419],[-75.221,5.503],[-75.147,5.53],[-75.091,5.586],[-75.099,5.643],[-74.993,5.716],[-74.866,5.747],[-74.807,5.7],[-74.74,5.7],[-74.714,5.769],[-74.665,5.768]]]]}},{"type":"Feature","properties":{"k":"QUINDIO"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-75.388,4.716],[-75.415,4.623],[-75.514,4.556],[-75.578,4.452],[-75.593,4.319],[-75.697,4.132],[-75.752,4.077],[-75.84,4.101],[-75.823,4.229],[-75.787,4.294],[-75.803,4.396],[-75.888,4.431],[-75.867,4.608],[-75.825,4.664],[-75.707,4.657],[-75.714,4.713],[-75.583,4.707],[-75.492,4.666],[-75.388,4.716]]]]}},{"type":"Feature","properties":{"k":"RISARALDA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-75.868,5.49],[-75.858,5.378],[-75.811,5.361],[-75.74,5.397],[-75.648,5.308],[-75.693,5.255],[-75.803,5.281],[-75.802,5.198],[-75.917,5.079],[-75.89,4.96],[-75.814,4.919],[-75.747,5.047],[-75.714,4.956],[-75.483,4.917],[-75.428,4.816],[-75.375,4.802],[-75.388,4.716],[-75.492,4.666],[-75.583,4.707],[-75.714,4.713],[-75.791,4.718],[-75.936,4.809],[-75.988,4.874],[-76.078,5.047],[-76.06,5.136],[-76.124,5.173],[-76.201,5.322],[-76.19,5.397],[-76.089,5.446],[-76.085,5.534],[-76.009,5.567],[-75.983,5.519],[-75.868,5.49]]]]}},{"type":"Feature","properties":{"k":"ANTIOQUIA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-74.83,8.2],[-74.785,8.132],[-74.725,8.117],[-74.605,8.038],[-74.519,7.901],[-74.508,7.724],[-74.561,7.646],[-74.568,7.519],[-74.599,7.462],[-74.491,7.343],[-74.414,7.399],[-74.413,7.46],[-74.32,7.44],[-74.398,7.348],[-74.41,7.202],[-74.322,7.019],[-74.246,7.003],[-73.916,7.295],[-73.939,7.182],[-73.888,7.071],[-73.897,6.986],[-74.011,6.913],[-74.115,6.766],[-74.232,6.71],[-74.256,6.675],[-74.359,6.633],[-74.409,6.586],[-74.397,6.452],[-74.451,6.332],[-74.527,6.274],[-74.612,6.126],[-74.562,6.078],[-74.563,6.002],[-74.612,5.966],[-74.59,5.894],[-74.638,5.866],[-74.665,5.768],[-74.714,5.769],[-74.74,5.7],[-74.807,5.7],[-74.866,5.747],[-74.993,5.716],[-75.099,5.643],[-75.091,5.586],[-75.147,5.53],[-75.221,5.503],[-75.276,5.419],[-75.377,5.674],[-75.479,5.664],[-75.599,5.737],[-75.57,5.523],[-75.69,5.519],[-75.73,5.564],[-75.868,5.49],[-75.983,5.519],[-76.009,5.567],[-76.007,5.623],[-76.087,5.689],[-76.063,5.727],[-76.098,5.85],[-76.057,5.896],[-76.105,6.018],[-76.16,6.004],[-76.191,6.059],[-76.21,6.185],[-76.238,6.208],[-76.378,6.193],[-76.42,6.166],[-76.602,6.192],[-76.717,6.171],[-76.718,6.215],[-76.79,6.318],[-76.778,6.489],[-76.899,6.58],[-76.954,6.675],[-76.972,6.798],[-76.876,6.851],[-76.794,6.865],[-76.824,7.005],[-76.676,7.03],[-76.548,7.001],[-76.5,7.169],[-76.531,7.255],[-76.615,7.312],[-76.662,7.449],[-76.801,7.571],[-76.936,7.584],[-76.96,7.64],[-77.123,7.79],[-77.026,7.89],[-76.997,8.019],[-76.938,8.068],[-76.98,8.256],[-76.925,8.025],[-76.922,7.917],[-76.828,7.902],[-76.748,7.922],[-76.734,8.071],[-76.739,8.174],[-76.774,8.268],[-76.758,8.392],[-76.824,8.496],[-76.927,8.542],[-76.886,8.623],[-76.649,8.671],[-76.631,8.73],[-76.544,8.763],[-76.413,8.874],[-76.34,8.641],[-76.266,8.639],[-76.21,8.523],[-76.227,8.381],[-76.288,8.329],[-76.352,8.204],[-76.348,8.155],[-76.429,8.059],[-76.412,8.007],[-76.482,7.821],[-76.494,7.542],[-76.381,7.392],[-75.845,7.347],[-75.742,7.612],[-75.712,7.581],[-75.605,7.585],[-75.474,7.777],[-75.33,7.927],[-75.221,8.066],[-75.193,8.047],[-75.057,8.047],[-74.966,8.09],[-74.928,8.075],[-74.83,8.2]]]]}},{"type":"Feature","properties":{"k":"CHOCO"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-76.98,8.256],[-76.938,8.068],[-76.997,8.019],[-77.026,7.89],[-77.123,7.79],[-76.96,7.64],[-76.936,7.584],[-76.801,7.571],[-76.662,7.449],[-76.615,7.312],[-76.531,7.255],[-76.5,7.169],[-76.548,7.001],[-76.676,7.03],[-76.824,7.005],[-76.794,6.865],[-76.876,6.851],[-76.972,6.798],[-76.954,6.675],[-76.899,6.58],[-76.778,6.489],[-76.79,6.318],[-76.718,6.215],[-76.717,6.171],[-76.602,6.192],[-76.42,6.166],[-76.378,6.193],[-76.238,6.208],[-76.21,6.185],[-76.191,6.059],[-76.16,6.004],[-76.105,6.018],[-76.057,5.896],[-76.098,5.85],[-76.063,5.727],[-76.087,5.689],[-76.007,5.623],[-76.009,5.567],[-76.085,5.534],[-76.089,5.446],[-76.19,5.397],[-76.201,5.322],[-76.124,5.173],[-76.06,5.136],[-76.078,5.047],[-76.089,4.946],[-76.145,4.838],[-76.211,4.83],[-76.313,4.75],[-76.286,4.712],[-76.386,4.481],[-76.562,4.37],[-76.527,4.288],[-76.445,4.175],[-76.499,4.064],[-76.589,3.993],[-76.681,3.965],[-76.867,4.033],[-76.915,4.096],[-76.994,4.121],[-77.05,4.095],[-77.159,4.183],[-77.307,4.165],[-77.353,4.198],[-77.45,4.039],[-77.526,4.127],[-77.525,4.257],[-77.428,4.318],[-77.354,4.416],[-77.326,4.569],[-77.313,4.774],[-77.348,4.811],[-77.375,4.959],[-77.387,5.288],[-77.413,5.404],[-77.39,5.443],[-77.472,5.49],[-77.539,5.48],[-77.504,5.585],[-77.422,5.626],[-77.338,5.619],[-77.264,5.716],[-77.256,5.794],[-77.29,5.846],[-77.336,6.001],[-77.455,6.134],[-77.483,6.193],[-77.409,6.228],[-77.359,6.393],[-77.359,6.488],[-77.325,6.549],[-77.397,6.621],[-77.449,6.706],[-77.516,6.657],[-77.57,6.796],[-77.618,6.843],[-77.711,6.88],[-77.663,7.0],[-77.883,7.218],[-77.793,7.461],[-77.702,7.509],[-77.749,7.615],[-77.742,7.678],[-77.647,7.653],[-77.607,7.542],[-77.569,7.508],[-77.493,7.584],[-77.313,7.897],[-77.179,7.917],[-77.219,8.09],[-77.261,8.212],[-77.334,8.274],[-77.386,8.44],[-77.45,8.5],[-77.345,8.645],[-77.287,8.572],[-77.248,8.471],[-77.129,8.409],[-77.036,8.253],[-76.98,8.256]]]]}},{"type":"Feature","properties":{"k":"NARINO"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-77.929,2.641],[-77.917,2.412],[-77.848,2.26],[-77.835,2.176],[-77.734,2.134],[-77.554,2.202],[-77.488,2.195],[-77.46,2.286],[-77.323,2.222],[-77.308,2.108],[-77.332,2.05],[-77.204,1.952],[-77.281,1.86],[-77.33,1.686],[-77.239,1.658],[-76.936,1.729],[-76.834,1.615],[-76.928,1.483],[-76.921,1.346],[-76.981,1.223],[-77.089,1.183],[-77.084,1.062],[-77.028,0.995],[-77.117,0.901],[-77.187,0.63],[-77.128,0.602],[-77.13,0.525],[-77.09,0.426],[-77.113,0.373],[-77.297,0.365],[-77.325,0.388],[-77.523,0.416],[-77.522,0.531],[-77.485,0.656],[-77.564,0.652],[-77.697,0.754],[-77.664,0.811],[-77.713,0.851],[-77.867,0.801],[-77.965,0.824],[-78.034,0.88],[-78.197,0.949],[-78.195,0.985],[-78.27,1.047],[-78.314,1.191],[-78.418,1.16],[-78.506,1.197],[-78.544,1.244],[-78.621,1.25],[-78.71,1.359],[-78.79,1.408],[-78.818,1.473],[-78.959,1.594],[-79.007,1.658],[-78.861,1.807],[-78.81,1.829],[-78.717,1.77],[-78.602,1.794],[-78.539,1.858],[-78.599,1.9],[-78.587,1.973],[-78.672,2.031],[-78.713,2.165],[-78.628,2.32],[-78.624,2.372],[-78.55,2.492],[-78.334,2.656],[-78.143,2.681],[-78.073,2.611],[-78.035,2.648],[-77.929,2.641]]]]}},{"type":"Feature","properties":{"k":"CORDOBA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-75.701,9.412],[-75.57,9.279],[-75.458,9.239],[-75.445,9.141],[-75.392,9.159],[-75.281,9.072],[-75.21,9.05],[-75.168,8.952],[-75.245,8.883],[-75.364,8.83],[-75.328,8.737],[-75.352,8.658],[-75.328,8.562],[-75.267,8.487],[-75.213,8.474],[-75.185,8.397],[-75.128,8.469],[-75.042,8.458],[-75.008,8.511],[-74.926,8.5],[-74.874,8.403],[-74.801,8.337],[-74.781,8.278],[-74.83,8.2],[-74.928,8.075],[-74.966,8.09],[-75.057,8.047],[-75.193,8.047],[-75.221,8.066],[-75.33,7.927],[-75.474,7.777],[-75.605,7.585],[-75.712,7.581],[-75.742,7.612],[-75.845,7.347],[-76.381,7.392],[-76.494,7.542],[-76.482,7.821],[-76.412,8.007],[-76.429,8.059],[-76.348,8.155],[-76.352,8.204],[-76.288,8.329],[-76.227,8.381],[-76.21,8.523],[-76.266,8.639],[-76.34,8.641],[-76.413,8.874],[-76.34,8.919],[-76.265,8.998],[-76.251,9.058],[-76.189,9.116],[-76.171,9.23],[-76.102,9.276],[-76.081,9.336],[-75.978,9.376],[-75.949,9.444],[-75.784,9.393],[-75.701,9.412]]]]}},{"type":"Feature","properties":{"k":"BOLIVAR"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-75.224,10.795],[-75.25,10.723],[-75.223,10.63],[-75.241,10.52],[-75.126,10.399],[-75.082,10.412],[-74.965,10.326],[-74.911,10.254],[-74.945,10.128],[-74.84,10.079],[-74.787,10.008],[-74.873,9.935],[-74.873,9.848],[-74.815,9.785],[-74.803,9.667],[-74.773,9.604],[-74.806,9.553],[-74.737,9.422],[-74.699,9.427],[-74.565,9.312],[-74.514,9.234],[-74.44,9.274],[-74.403,9.214],[-74.342,9.231],[-74.249,9.164],[-74.175,9.075],[-74.104,9.022],[-74.004,9.03],[-73.872,8.961],[-73.868,8.936],[-73.867,8.887],[-73.796,8.818],[-73.79,8.749],[-73.82,8.662],[-73.747,8.466],[-73.775,8.145],[-73.867,8.07],[-73.862,7.972],[-73.831,7.932],[-73.798,7.772],[-73.83,7.728],[-73.798,7.657],[-73.846,7.542],[-73.917,7.472],[-73.895,7.431],[-73.916,7.295],[-74.246,7.003],[-74.322,7.019],[-74.41,7.202],[-74.398,7.348],[-74.32,7.44],[-74.413,7.46],[-74.414,7.399],[-74.491,7.343],[-74.599,7.462],[-74.568,7.519],[-74.561,7.646],[-74.508,7.724],[-74.519,7.901],[-74.605,8.038],[-74.725,8.117],[-74.785,8.132],[-74.83,8.2],[-74.781,8.278],[-74.649,8.314],[-74.54,8.425],[-74.534,8.476],[-74.609,8.73],[-74.54,8.805],[-74.639,8.977],[-74.828,9.061],[-74.864,9.148],[-74.902,9.163],[-74.942,9.351],[-74.912,9.416],[-75.032,9.467],[-75.133,9.596],[-75.279,9.686],[-75.325,9.625],[-75.375,9.657],[-75.336,9.812],[-75.393,9.881],[-75.467,9.909],[-75.491,10.038],[-75.573,10.086],[-75.524,10.173],[-75.562,10.27],[-75.503,10.301],[-75.512,10.572],[-75.396,10.681],[-75.276,10.715],[-75.224,10.795]]]]}},{"type":"Feature","properties":{"k":"CESAR"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-72.901,10.436],[-72.9,10.209],[-72.912,10.115],[-72.999,9.923],[-72.972,9.855],[-73.055,9.679],[-73.085,9.557],[-73.176,9.501],[-73.241,9.403],[-73.299,9.271],[-73.369,9.173],[-73.43,9.102],[-73.411,9.054],[-73.44,8.975],[-73.448,8.862],[-73.411,8.781],[-73.463,8.745],[-73.552,8.606],[-73.531,8.528],[-73.473,8.448],[-73.517,8.396],[-73.457,8.361],[-73.394,8.378],[-73.35,8.334],[-73.405,8.246],[-73.432,8.14],[-73.377,8.106],[-73.366,8.023],[-73.278,7.985],[-73.279,7.936],[-73.351,7.892],[-73.351,7.795],[-73.411,7.716],[-73.481,7.677],[-73.633,7.749],[-73.753,7.751],[-73.75,7.803],[-73.671,7.894],[-73.676,7.943],[-73.764,8.064],[-73.775,8.145],[-73.747,8.466],[-73.82,8.662],[-73.79,8.749],[-73.796,8.818],[-73.867,8.887],[-73.868,8.936],[-73.798,9.059],[-73.864,9.112],[-73.891,9.174],[-73.962,9.188],[-73.943,9.289],[-73.989,9.317],[-73.979,9.39],[-74.137,9.496],[-74.037,9.592],[-73.868,9.6],[-73.803,9.636],[-73.842,9.798],[-73.897,9.837],[-73.959,9.931],[-73.993,9.936],[-74.083,10.07],[-74.065,10.167],[-73.954,10.339],[-73.892,10.391],[-73.78,10.396],[-73.66,10.456],[-73.6,10.576],[-73.594,10.705],[-73.551,10.749],[-73.599,10.836],[-73.48,10.867],[-73.291,10.862],[-73.256,10.826],[-73.263,10.732],[-73.114,10.679],[-73.076,10.637],[-73.099,10.551],[-73.175,10.481],[-73.127,10.399],[-73.088,10.425],[-72.987,10.4],[-72.901,10.436]]]]}},{"type":"Feature","properties":{"k":"LA GUAJIRA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-72.901,10.436],[-72.987,10.4],[-73.088,10.425],[-73.127,10.399],[-73.175,10.481],[-73.099,10.551],[-73.076,10.637],[-73.114,10.679],[-73.263,10.732],[-73.256,10.826],[-73.291,10.862],[-73.48,10.867],[-73.599,10.836],[-73.665,10.99],[-73.628,11.142],[-73.584,11.189],[-73.575,11.26],[-73.362,11.263],[-73.276,11.286],[-73.143,11.408],[-73.025,11.494],[-72.884,11.564],[-72.826,11.636],[-72.723,11.7],[-72.459,11.777],[-72.237,11.886],[-72.138,12.104],[-72.143,12.239],[-71.964,12.257],[-71.995,12.186],[-71.96,12.15],[-71.86,12.211],[-71.928,12.298],[-71.86,12.356],[-71.805,12.305],[-71.691,12.366],[-71.624,12.44],[-71.542,12.44],[-71.283,12.343],[-71.225,12.273],[-71.115,12.086],[-71.136,12.003],[-71.235,11.953],[-71.378,11.812],[-71.611,11.746],[-71.802,11.68],[-71.972,11.647],[-72.246,11.145],[-72.349,11.151],[-72.485,11.099],[-72.485,11.062],[-72.58,10.911],[-72.638,10.885],[-72.711,10.752],[-72.752,10.633],[-72.837,10.539],[-72.901,10.436]]]]}},{"type":"Feature","properties":{"k":"MAGDALENA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-73.575,11.26],[-73.584,11.189],[-73.628,11.142],[-73.665,10.99],[-73.599,10.836],[-73.551,10.749],[-73.594,10.705],[-73.6,10.576],[-73.66,10.456],[-73.78,10.396],[-73.892,10.391],[-73.954,10.339],[-74.065,10.167],[-74.083,10.07],[-73.993,9.936],[-73.959,9.931],[-73.897,9.837],[-73.842,9.798],[-73.803,9.636],[-73.868,9.6],[-74.037,9.592],[-74.137,9.496],[-73.979,9.39],[-73.989,9.317],[-73.943,9.289],[-73.962,9.188],[-73.891,9.174],[-73.864,9.112],[-73.798,9.059],[-73.868,8.936],[-73.872,8.961],[-74.004,9.03],[-74.104,9.022],[-74.175,9.075],[-74.249,9.164],[-74.342,9.231],[-74.403,9.214],[-74.44,9.274],[-74.514,9.234],[-74.565,9.312],[-74.699,9.427],[-74.737,9.422],[-74.806,9.553],[-74.773,9.604],[-74.803,9.667],[-74.815,9.785],[-74.873,9.848],[-74.873,9.935],[-74.787,10.008],[-74.84,10.079],[-74.945,10.128],[-74.911,10.254],[-74.828,10.411],[-74.809,10.476],[-74.736,10.551],[-74.721,10.904],[-74.764,10.995],[-74.852,11.105],[-74.599,11.009],[-74.474,10.979],[-74.356,10.976],[-74.263,11.007],[-74.218,11.066],[-74.238,11.222],[-74.146,11.336],[-74.077,11.317],[-73.979,11.339],[-73.857,11.274],[-73.661,11.253],[-73.575,11.26]]]]}},{"type":"Feature","properties":{"k":"SUCRE"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-74.781,8.278],[-74.801,8.337],[-74.874,8.403],[-74.926,8.5],[-75.008,8.511],[-75.042,8.458],[-75.128,8.469],[-75.185,8.397],[-75.213,8.474],[-75.267,8.487],[-75.328,8.562],[-75.352,8.658],[-75.328,8.737],[-75.364,8.83],[-75.245,8.883],[-75.168,8.952],[-75.21,9.05],[-75.281,9.072],[-75.392,9.159],[-75.445,9.141],[-75.458,9.239],[-75.57,9.279],[-75.701,9.412],[-75.636,9.428],[-75.597,9.49],[-75.571,9.618],[-75.644,9.757],[-75.582,9.951],[-75.573,10.086],[-75.491,10.038],[-75.467,9.909],[-75.393,9.881],[-75.336,9.812],[-75.375,9.657],[-75.325,9.625],[-75.279,9.686],[-75.133,9.596],[-75.032,9.467],[-74.912,9.416],[-74.942,9.351],[-74.902,9.163],[-74.864,9.148],[-74.828,9.061],[-74.639,8.977],[-74.54,8.805],[-74.609,8.73],[-74.534,8.476],[-74.54,8.425],[-74.649,8.314],[-74.781,8.278]]]]}},{"type":"Feature","properties":{"k":"ARAUCA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-69.428,6.108],[-69.536,6.046],[-69.836,6.041],[-69.983,6.158],[-70.03,6.162],[-70.121,6.258],[-70.199,6.295],[-70.313,6.28],[-70.38,6.302],[-70.531,6.23],[-70.557,6.245],[-70.723,6.217],[-70.787,6.251],[-70.984,6.229],[-71.097,6.277],[-71.219,6.299],[-71.345,6.232],[-71.417,6.243],[-71.488,6.202],[-71.534,6.214],[-71.667,6.192],[-71.777,6.193],[-71.88,6.16],[-71.961,6.167],[-72.138,6.067],[-72.278,6.136],[-72.293,6.204],[-72.344,6.227],[-72.367,6.307],[-72.339,6.346],[-72.261,6.442],[-72.138,6.514],[-72.092,6.648],[-72.1,6.746],[-72.051,6.768],[-71.949,7.011],[-71.835,7.026],[-71.811,7.062],[-71.715,7.035],[-71.649,7.051],[-71.574,7.026],[-71.425,7.038],[-71.379,7.017],[-71.128,7.032],[-71.111,6.99],[-71.022,6.974],[-70.896,7.06],[-70.697,7.094],[-70.608,7.065],[-70.548,7.074],[-70.503,7.006],[-70.431,7.008],[-70.323,6.934],[-70.225,6.975],[-70.117,6.979],[-69.814,6.597],[-69.428,6.108]]]]}},{"type":"Feature","properties":{"k":"BOYACA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-72.048,7.038],[-71.949,7.011],[-72.051,6.768],[-72.1,6.746],[-72.092,6.648],[-72.138,6.514],[-72.261,6.442],[-72.339,6.346],[-72.371,6.32],[-72.412,6.188],[-72.375,6.15],[-72.366,6.037],[-72.326,5.935],[-72.416,5.903],[-72.459,5.851],[-72.31,5.794],[-72.226,5.668],[-72.288,5.606],[-72.301,5.507],[-72.397,5.57],[-72.502,5.445],[-72.688,5.282],[-72.812,5.383],[-72.88,5.35],[-72.897,5.26],[-72.973,5.146],[-72.903,5.068],[-72.971,4.98],[-73.015,5.002],[-73.077,4.812],[-73.053,4.737],[-73.103,4.661],[-73.224,4.679],[-73.223,4.733],[-73.306,4.732],[-73.372,4.801],[-73.402,4.879],[-73.52,4.879],[-73.547,4.924],[-73.515,5.036],[-73.48,5.064],[-73.531,5.278],[-73.578,5.302],[-73.618,5.405],[-73.782,5.5],[-73.818,5.554],[-73.89,5.513],[-73.906,5.446],[-73.99,5.375],[-74.143,5.448],[-74.31,5.619],[-74.287,5.746],[-74.334,5.828],[-74.432,5.758],[-74.53,5.79],[-74.593,5.747],[-74.661,5.752],[-74.665,5.768],[-74.638,5.866],[-74.59,5.894],[-74.612,5.966],[-74.563,6.002],[-74.562,6.078],[-74.612,6.126],[-74.527,6.274],[-74.452,6.099],[-74.378,6.039],[-74.287,6.083],[-74.18,5.911],[-74.026,5.806],[-73.998,5.741],[-73.905,5.74],[-73.862,5.711],[-73.711,5.777],[-73.639,5.725],[-73.6,5.87],[-73.631,5.894],[-73.586,6.006],[-73.497,6.108],[-73.403,6.054],[-73.371,6.006],[-73.402,5.902],[-73.444,5.902],[-73.474,5.816],[-73.391,5.751],[-73.345,5.842],[-73.184,5.85],[-73.219,5.913],[-73.2,6.004],[-73.13,5.959],[-72.954,6.066],[-72.804,6.215],[-72.744,6.235],[-72.758,6.317],[-72.732,6.357],[-72.736,6.491],[-72.661,6.444],[-72.54,6.488],[-72.546,6.567],[-72.486,6.657],[-72.503,6.908],[-72.393,6.872],[-72.313,6.932],[-72.291,6.994],[-72.22,6.986],[-72.199,7.041],[-72.048,7.038]]]]}},{"type":"Feature","properties":{"k":"CUNDINAMARCA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-73.053,4.737],[-73.124,4.26],[-73.354,4.322],[-73.473,4.276],[-73.551,4.308],[-73.573,4.419],[-73.602,4.454],[-73.568,4.527],[-73.622,4.562],[-73.727,4.503],[-73.807,4.422],[-73.784,4.301],[-73.744,4.266],[-73.753,4.193],[-73.814,4.201],[-73.956,4.1],[-74.005,4.11],[-74.101,4.013],[-74.151,4.004],[-74.109,4.169],[-74.152,4.256],[-74.098,4.345],[-74.117,4.405],[-74.005,4.561],[-74.009,4.821],[-74.052,4.832],[-74.173,4.711],[-74.178,4.486],[-74.212,4.393],[-74.217,4.273],[-74.245,4.103],[-74.325,4.127],[-74.366,4.037],[-74.36,3.914],[-74.44,3.73],[-74.446,3.801],[-74.535,3.843],[-74.513,3.953],[-74.531,4.034],[-74.476,4.112],[-74.484,4.177],[-74.562,4.272],[-74.639,4.211],[-74.702,4.213],[-74.813,4.294],[-74.879,4.266],[-74.833,4.443],[-74.787,4.509],[-74.814,4.586],[-74.789,4.659],[-74.814,4.736],[-74.743,4.79],[-74.752,4.866],[-74.716,5.093],[-74.735,5.287],[-74.667,5.405],[-74.675,5.516],[-74.627,5.697],[-74.661,5.752],[-74.593,5.747],[-74.53,5.79],[-74.432,5.758],[-74.334,5.828],[-74.287,5.746],[-74.31,5.619],[-74.143,5.448],[-73.99,5.375],[-73.906,5.446],[-73.89,5.513],[-73.818,5.554],[-73.782,5.5],[-73.618,5.405],[-73.578,5.302],[-73.531,5.278],[-73.48,5.064],[-73.515,5.036],[-73.547,4.924],[-73.52,4.879],[-73.402,4.879],[-73.372,4.801],[-73.306,4.732],[-73.223,4.733],[-73.224,4.679],[-73.103,4.661],[-73.053,4.737]]]]}},{"type":"Feature","properties":{"k":"NORTE DE SANTANDER"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-72.048,7.038],[-72.199,7.041],[-72.22,6.986],[-72.291,6.994],[-72.313,6.932],[-72.393,6.872],[-72.503,6.908],[-72.553,6.985],[-72.722,7.005],[-72.787,7.048],[-72.858,7.154],[-72.841,7.195],[-72.87,7.278],[-72.841,7.362],[-72.901,7.434],[-72.894,7.475],[-72.978,7.529],[-72.993,7.597],[-73.218,7.632],[-73.247,7.558],[-73.355,7.544],[-73.506,7.595],[-73.517,7.637],[-73.633,7.749],[-73.481,7.677],[-73.411,7.716],[-73.351,7.795],[-73.351,7.892],[-73.279,7.936],[-73.278,7.985],[-73.366,8.023],[-73.377,8.106],[-73.432,8.14],[-73.405,8.246],[-73.35,8.334],[-73.394,8.378],[-73.457,8.361],[-73.517,8.396],[-73.473,8.448],[-73.531,8.528],[-73.552,8.606],[-73.463,8.745],[-73.411,8.781],[-73.448,8.862],[-73.44,8.975],[-73.411,9.054],[-73.43,9.102],[-73.369,9.173],[-73.252,9.158],[-73.176,9.177],[-73.009,9.291],[-72.965,9.2],[-72.982,9.147],[-72.933,9.082],[-72.883,9.131],[-72.766,9.1],[-72.72,8.941],[-72.655,8.615],[-72.389,8.349],[-72.383,8.232],[-72.354,8.156],[-72.373,8.104],[-72.346,8.038],[-72.487,7.946],[-72.444,7.86],[-72.469,7.793],[-72.476,7.633],[-72.453,7.565],[-72.479,7.498],[-72.425,7.402],[-72.256,7.378],[-72.198,7.387],[-72.154,7.329],[-72.17,7.252],[-72.048,7.038]]]]}},{"type":"Feature","properties":{"k":"BOGOTA DC"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-74.151,4.004],[-74.229,3.994],[-74.336,3.822],[-74.416,3.74],[-74.44,3.73],[-74.36,3.914],[-74.366,4.037],[-74.325,4.127],[-74.245,4.103],[-74.217,4.273],[-74.212,4.393],[-74.178,4.486],[-74.173,4.711],[-74.052,4.832],[-74.009,4.821],[-74.005,4.561],[-74.117,4.405],[-74.098,4.345],[-74.152,4.256],[-74.109,4.169],[-74.151,4.004]]]]}},{"type":"Feature","properties":{"k":"META"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-71.078,4.899],[-71.078,3.973],[-71.078,3.295],[-71.077,2.883],[-71.278,2.868],[-71.329,2.892],[-71.389,2.845],[-71.469,2.894],[-71.652,2.821],[-71.742,2.884],[-71.858,2.843],[-72.046,2.818],[-72.113,2.875],[-72.204,2.859],[-72.359,2.781],[-72.389,2.736],[-72.47,2.734],[-72.486,2.685],[-72.563,2.682],[-72.6,2.615],[-72.7,2.62],[-72.736,2.571],[-72.816,2.615],[-72.922,2.56],[-72.936,2.503],[-73.012,2.434],[-73.066,2.426],[-73.153,2.367],[-73.24,2.389],[-73.299,2.336],[-73.438,2.383],[-73.514,2.35],[-73.632,2.353],[-73.661,2.294],[-73.66,1.612],[-73.739,1.638],[-73.858,1.608],[-73.994,1.639],[-74.105,1.691],[-74.207,1.716],[-74.322,1.788],[-74.47,1.807],[-74.563,1.848],[-74.561,1.963],[-74.644,2.095],[-74.594,2.135],[-74.65,2.243],[-74.743,2.27],[-74.742,2.324],[-74.672,2.449],[-74.681,2.554],[-74.589,2.662],[-74.637,2.71],[-74.671,2.888],[-74.762,2.873],[-74.803,2.936],[-74.879,2.914],[-74.899,2.964],[-74.751,3.108],[-74.616,3.321],[-74.639,3.368],[-74.616,3.46],[-74.563,3.526],[-74.502,3.647],[-74.416,3.74],[-74.336,3.822],[-74.229,3.994],[-74.151,4.004],[-74.101,4.013],[-74.005,4.11],[-73.956,4.1],[-73.814,4.201],[-73.753,4.193],[-73.744,4.266],[-73.784,4.301],[-73.807,4.422],[-73.727,4.503],[-73.622,4.562],[-73.568,4.527],[-73.602,4.454],[-73.573,4.419],[-73.551,4.308],[-73.473,4.276],[-73.354,4.322],[-73.124,4.26],[-73.053,4.737],[-73.017,4.635],[-72.968,4.599],[-72.897,4.475],[-72.772,4.37],[-72.77,4.333],[-72.58,4.301],[-72.554,4.336],[-72.405,4.318],[-72.304,4.407],[-72.158,4.442],[-71.999,4.382],[-71.868,4.505],[-71.814,4.574],[-71.736,4.574],[-71.598,4.645],[-71.579,4.674],[-71.212,4.817],[-71.078,4.899]]]]}},{"type":"Feature","properties":{"k":"HUILA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-74.44,3.73],[-74.416,3.74],[-74.502,3.647],[-74.563,3.526],[-74.616,3.46],[-74.639,3.368],[-74.616,3.321],[-74.751,3.108],[-74.899,2.964],[-75.07,2.745],[-75.147,2.723],[-75.133,2.596],[-75.287,2.41],[-75.31,2.362],[-75.386,2.315],[-75.445,2.144],[-75.535,2.118],[-75.616,1.996],[-75.659,1.892],[-75.735,1.787],[-75.847,1.722],[-75.904,1.716],[-76.035,1.582],[-76.124,1.566],[-76.169,1.589],[-76.245,1.683],[-76.381,1.667],[-76.37,1.732],[-76.434,1.791],[-76.588,1.866],[-76.625,1.974],[-76.587,2.0],[-76.589,2.108],[-76.554,2.14],[-76.425,2.129],[-76.385,2.269],[-76.303,2.284],[-76.209,2.198],[-76.122,2.224],[-76.146,2.294],[-76.127,2.381],[-76.034,2.402],[-75.98,2.503],[-75.863,2.426],[-75.823,2.483],[-75.84,2.558],[-75.748,2.719],[-75.806,2.769],[-75.823,2.835],[-75.896,2.855],[-76.029,2.941],[-75.86,2.873],[-75.803,2.885],[-75.692,2.993],[-75.627,3.003],[-75.622,3.076],[-75.583,3.124],[-75.577,3.221],[-75.479,3.361],[-75.426,3.352],[-75.366,3.407],[-75.241,3.404],[-75.15,3.435],[-75.046,3.432],[-75.036,3.287],[-74.907,3.29],[-74.765,3.44],[-74.775,3.525],[-74.676,3.666],[-74.557,3.768],[-74.535,3.843],[-74.446,3.801],[-74.44,3.73]]]]}},{"type":"Feature","properties":{"k":"SANTANDER"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-73.633,7.749],[-73.517,7.637],[-73.506,7.595],[-73.355,7.544],[-73.247,7.558],[-73.218,7.632],[-72.993,7.597],[-72.978,7.529],[-72.894,7.475],[-72.901,7.434],[-72.841,7.362],[-72.87,7.278],[-72.841,7.195],[-72.858,7.154],[-72.787,7.048],[-72.722,7.005],[-72.553,6.985],[-72.503,6.908],[-72.486,6.657],[-72.546,6.567],[-72.54,6.488],[-72.661,6.444],[-72.736,6.491],[-72.732,6.357],[-72.758,6.317],[-72.744,6.235],[-72.804,6.215],[-72.954,6.066],[-73.13,5.959],[-73.2,6.004],[-73.219,5.913],[-73.184,5.85],[-73.345,5.842],[-73.391,5.751],[-73.474,5.816],[-73.444,5.902],[-73.402,5.902],[-73.371,6.006],[-73.403,6.054],[-73.497,6.108],[-73.586,6.006],[-73.631,5.894],[-73.6,5.87],[-73.639,5.725],[-73.711,5.777],[-73.862,5.711],[-73.905,5.74],[-73.998,5.741],[-74.026,5.806],[-74.18,5.911],[-74.287,6.083],[-74.378,6.039],[-74.452,6.099],[-74.527,6.274],[-74.451,6.332],[-74.397,6.452],[-74.409,6.586],[-74.359,6.633],[-74.256,6.675],[-74.232,6.71],[-74.115,6.766],[-74.011,6.913],[-73.897,6.986],[-73.888,7.071],[-73.939,7.182],[-73.916,7.295],[-73.895,7.431],[-73.917,7.472],[-73.846,7.542],[-73.798,7.657],[-73.83,7.728],[-73.798,7.772],[-73.831,7.932],[-73.862,7.972],[-73.867,8.07],[-73.775,8.145],[-73.764,8.064],[-73.676,7.943],[-73.671,7.894],[-73.75,7.803],[-73.753,7.751],[-73.633,7.749]]]]}},{"type":"Feature","properties":{"k":"TOLIMA"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-74.735,5.287],[-74.716,5.093],[-74.752,4.866],[-74.743,4.79],[-74.814,4.736],[-74.789,4.659],[-74.814,4.586],[-74.787,4.509],[-74.833,4.443],[-74.879,4.266],[-74.813,4.294],[-74.702,4.213],[-74.639,4.211],[-74.562,4.272],[-74.484,4.177],[-74.476,4.112],[-74.531,4.034],[-74.513,3.953],[-74.535,3.843],[-74.557,3.768],[-74.676,3.666],[-74.775,3.525],[-74.765,3.44],[-74.907,3.29],[-75.036,3.287],[-75.046,3.432],[-75.15,3.435],[-75.241,3.404],[-75.366,3.407],[-75.426,3.352],[-75.479,3.361],[-75.577,3.221],[-75.583,3.124],[-75.622,3.076],[-75.627,3.003],[-75.692,2.993],[-75.803,2.885],[-75.86,2.873],[-76.029,2.941],[-76.021,3.005],[-76.073,3.05],[-76.091,3.199],[-76.056,3.223],[-76.038,3.301],[-76.062,3.355],[-76.027,3.487],[-75.985,3.559],[-75.993,3.609],[-75.955,3.714],[-75.922,3.739],[-75.862,3.874],[-75.807,3.931],[-75.752,4.077],[-75.697,4.132],[-75.593,4.319],[-75.578,4.452],[-75.514,4.556],[-75.415,4.623],[-75.388,4.716],[-75.375,4.802],[-75.324,4.866],[-75.352,4.939],[-75.317,5.028],[-75.344,5.081],[-75.288,5.138],[-75.117,5.161],[-75.057,5.275],[-74.939,5.313],[-74.851,5.314],[-74.735,5.287]]]]}},{"type":"Feature","properties":{"k":"ATLANTICO"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-74.911,10.254],[-74.965,10.326],[-75.082,10.412],[-75.126,10.399],[-75.241,10.52],[-75.223,10.63],[-75.25,10.723],[-75.224,10.795],[-75.044,10.899],[-75.005,10.98],[-74.852,11.105],[-74.764,10.995],[-74.721,10.904],[-74.736,10.551],[-74.809,10.476],[-74.828,10.411],[-74.911,10.254]]]]}}]}};
+</script>
+<script>
+(function(){
+'use strict';
+/* ================== DATOS ================== */
+const rows = D.rows.map(a=>({d:a[0],m:a[1],f:a[2],p:a[3],s:a[4],c:a[5],k:a[6],g:a[7],e:a[8]}));
+rows.forEach(r=>{ r.r = r.d>=0 ? D.depts[r.d].r : (r.d===-2 ? 'Exterior' : 'Sin dato'); });
+const REGS = D.regs;                                   // Andina, Caribe, Orinoquía, Pacífica
+const REGC = {'Andina':'#ffffff','Caribe':'#6F98E4','Orinoquía':'#3B6FCB','Pacífica':'#A9C2F0','Exterior':'#7B91BC','Sin dato':'#5A74A6'};
+const CAMPUS = [-74.0319, 4.8605];                     // Universidad de La Sabana, Chía
+const nf = new Intl.NumberFormat('es-CO');
+const fmtN = n => nf.format(Math.round(n));
+const fmt1 = n => n.toLocaleString('es-CO',{maximumFractionDigits:1,minimumFractionDigits:1});
+const fmt2 = n => n.toLocaleString('es-CO',{maximumFractionDigits:2,minimumFractionDigits:2});
+const pct = (a,b) => b ? Math.round(a/b*100) : 0;
+const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = id => document.getElementById(id);
+
+/* ================== ESTADO Y FILTROS ================== */
+const state = {dept:null,reg:null,fac:null,prog:null,sem:null,dbin:null,mun:null};
+const tests = {
+  dept:(r,v)=>r.d===v, reg:(r,v)=>r.r===v, fac:(r,v)=>r.f===v, prog:(r,v)=>r.p===v,
+  sem:(r,v)=>r.s===v, dbin:(r,v)=>r.k!=null && Math.min(7,Math.floor(r.k/100))===v, mun:(r,v)=>r.m===v
+};
+function sel(except){
+  const ex = except||[];
+  const ks = Object.keys(state).filter(k=>state[k]!==null && !ex.includes(k));
+  return ks.length ? rows.filter(r=>ks.every(k=>tests[k](r,state[k]))) : rows;
+}
+function toggle(key,val){
+  const was = state[key]===val;
+  if(was){ state[key]=null; }
+  else{
+    state[key]=val;
+    if(key==='dept'){ state.reg=null; state.mun=null; }
+    if(key==='reg'){ state.dept=null; state.mun=null; }
+    if(key==='mun'){ state.dept=null; state.reg=null; }
+    if(key==='fac'){ state.prog=null; }
+    if(key==='prog'){ state.fac=null; }
+  }
+  schedule();
+}
+function chipLabel(k){
+  const v=state[k];
+  switch(k){
+    case 'dept': return ['Departamento',D.depts[v].n];
+    case 'reg': return ['Región',v];
+    case 'fac': return ['Facultad',D.facs[v]];
+    case 'prog': return ['Programa',D.progs[v]];
+    case 'sem': return ['Semestre',v];
+    case 'dbin': return ['Distancia',binLabel(v)+' km'];
+    case 'mun': return ['Municipio',D.muns[v].n];
+  }
+}
+const DBINS = 8;
+function binLabel(i){ return i===DBINS-1 ? (i*100)+'+' : (i*100)+'–'+((i+1)*100); }
+
+/* ================== UTILIDADES ================== */
+const tip = $('tip');
+function showTip(html,ev){
+  tip.innerHTML = html; tip.classList.add('show');
+  const x = (ev.clientX||0), y=(ev.clientY||0);
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let px = x+16, py = y+16;
+  if(px+w>innerWidth-8) px = x-w-16;
+  if(py+h>innerHeight-8) py = y-h-16;
+  tip.style.left = Math.max(8,px)+'px'; tip.style.top = Math.max(8,py)+'px';
+}
+function hideTip(){ tip.classList.remove('show'); }
+function countUp(el,to,fmt,dur){
+  fmt = fmt||fmtN;
+  if(reduceMotion){ el.textContent = fmt(to); return; }
+  const from = parseFloat(el.dataset.v||0); el.dataset.v = to;
+  const t0 = performance.now(); dur = dur||900;
+  (function step(t){
+    const k = Math.min(1,(t-t0)/dur), e = 1-Math.pow(1-k,3);
+    el.textContent = fmt(from+(to-from)*e);
+    if(k<1) requestAnimationFrame(step);
+  })(t0);
+}
+function countBy(arr,fn){ const m=new Map(); arr.forEach(r=>{ const k=fn(r); if(k===undefined||k===null) return; m.set(k,(m.get(k)||0)+1); }); return m; }
+function mk(host,height,m){
+  const el = d3.select(host);
+  let svg = el.select('svg');
+  if(svg.empty()) svg = el.append('svg').attr('role','img');
+  const W = host.clientWidth || 320;
+  svg.attr('width',W).attr('height',height).attr('viewBox',`0 0 ${W} ${height}`);
+  let g = svg.select('g.root');
+  if(g.empty()) g = svg.append('g').attr('class','root');
+  g.attr('transform',`translate(${m.l},${m.t})`);
+  return {svg,g,w:W-m.l-m.r,h:height-m.t-m.b,W};
+}
+
+/* ----- listas de barras (HTML) ----- */
+function bars(host,items,opt){
+  opt = opt||{};
+  const max = d3.max(items,d=>d.v)||1;
+  const root = d3.select(host);
+  root.classed('has-on', items.some(d=>d.on));
+  root.selectAll('.empty').remove();
+  if(!items.length){ root.selectAll('button.bar').remove(); root.append('div').attr('class','empty').text('Sin datos con estos filtros.'); return; }
+  const join = root.selectAll('button.bar').data(items,d=>d.id).join(
+    enter=>{
+      const b = enter.append('button').attr('class','bar').attr('type','button');
+      b.append('span').attr('class','l'); const t=b.append('span').attr('class','t'); t.append('span').attr('class','f'); b.append('span').attr('class','v');
+      return b;
+    });
+  join.order().classed('on',d=>d.on).attr('aria-pressed',d=>d.on?'true':'false')
+    .on('click',(e,d)=>opt.onClick&&opt.onClick(d))
+    .on('mousemove',(e,d)=>{ if(d.tip) showTip(d.tip,e); }).on('mouseleave',hideTip);
+  join.select('.l').html(d=>d.sub?`${d.label}<small>${d.sub}</small>`:d.label);
+  join.select('.f').style('width',d=>(d.v/max*100)+'%').style('background',d=>d.color||null);
+  join.select('.v').text(d=>d.vtxt||fmtN(d.v));
+}
+
+/* ----- columnas (SVG) ----- */
+function columns(host,bins,opt){
+  const m = {t:opt.mark!=null?44:26,r:4,b:32,l:4};
+  const H = opt.h||240;
+  const {svg,g,w,h} = mk(host,H,m);
+  const x = d3.scaleBand().domain(bins.map(b=>b.id)).range([0,w]).padding(.16);
+  const y = d3.scaleLinear().domain([0,d3.max(bins,b=>b.v)||1]).range([h,0]);
+  const hasSel = opt.sel!=null;
+  let base = g.select('line.base');
+  if(base.empty()) base = g.append('line').attr('class','base').attr('stroke','rgba(255,255,255,.35)');
+  base.attr('x1',0).attr('x2',w).attr('y1',h).attr('y2',h);
+  const bg = g.selectAll('g.col').data(bins,d=>d.id).join(e=>{
+      const c = e.append('g').attr('class','col');
+      c.append('rect').attr('class','hit').attr('fill','transparent');
+      c.append('rect').attr('class','cbar').attr('rx',3).attr('y',h).attr('height',0);
+      c.append('text').attr('class','val').attr('text-anchor','middle').attr('font-size',12).attr('font-weight',600).attr('fill','#fff');
+      c.append('text').attr('class','lab').attr('text-anchor','middle').attr('font-size',12).attr('fill','rgba(255,255,255,.72)');
+      return c;
+    });
+  bg.attr('transform',d=>`translate(${x(d.id)},0)`).style('cursor',opt.onClick?'pointer':'default');
+  bg.select('rect.hit').attr('x',-4).attr('y',-m.t).attr('width',x.bandwidth()+8).attr('height',h+m.t+m.b-4);
+  const dur = reduceMotion?0:600;
+  bg.select('rect.cbar').attr('width',x.bandwidth())
+    .attr('fill',d=> hasSel&&opt.sel===d.id ? '#fff' : (opt.color?opt.color(d):'#8FB0EC'))
+    .attr('opacity',d=> hasSel&&opt.sel!==d.id ? .38 : 1)
+    .transition().duration(dur).attr('y',d=>y(d.v)).attr('height',d=>Math.max(0,h-y(d.v)));
+  bg.select('text.val').attr('x',x.bandwidth()/2).text(d=>d.v?fmtN(d.v):'')
+    .attr('opacity',x.bandwidth()<15?0:1)
+    .transition().duration(dur).attr('y',d=>y(d.v)-6);
+  const every = opt.every||1;
+  bg.select('text.lab').attr('x',x.bandwidth()/2).attr('y',h+20).text((d,i)=>i%every===0?d.label:'');
+  if(opt.onClick){
+    bg.on('click',(e,d)=>opt.onClick(d)).on('mousemove',(e,d)=>{ if(opt.tip) showTip(opt.tip(d),e); }).on('mouseleave',hideTip);
+  }else{
+    bg.on('mousemove',(e,d)=>{ if(opt.tip) showTip(opt.tip(d),e); }).on('mouseleave',hideTip);
+  }
+  // marcador opcional
+  svg.selectAll('.mark').remove();
+  if(opt.mark!=null){
+    const mx = m.l + opt.markX(opt.mark, w);
+    const gm = svg.append('g').attr('class','mark').attr('pointer-events','none');
+    gm.append('line').attr('x1',mx).attr('x2',mx).attr('y1',16).attr('y2',m.t+h).attr('stroke','#fff').attr('stroke-dasharray','4 4').attr('stroke-width',1.5);
+    const tx=gm.append('text').attr('y',10).attr('font-size',12).attr('font-weight',600).attr('fill','#fff').text(opt.markLabel||'');
+    const anchorEnd = mx > svg.attr('width')*0.7;
+    tx.attr('x',anchorEnd?mx+4:mx-4).attr('text-anchor',anchorEnd?'end':'start');
+    tx.attr('x',anchorEnd?mx+4:mx-4);
+  }
+}
+
+/* ================== MAPA ================== */
+class GeoMap{
+  constructor(host,opt){
+    this.host=host; this.opt=opt||{}; this.mode=opt.mode||'heat';
+    this.svg = d3.select(host).append('svg').attr('aria-hidden','true');
+    this.canvas = document.createElement('canvas'); host.appendChild(this.canvas);
+    this.ctx = this.canvas.getContext('2d');
+    this.gDept = this.svg.append('g');
+    this.gRing = this.svg.append('g').attr('pointer-events','none');
+    this.gBub = this.svg.append('g');
+    this.gLab = this.svg.append('g');
+    this.gCampus = this.svg.append('g').attr('pointer-events','none');
+    this.paths = this.gDept.selectAll('path').data(D.geo.features).join('path').attr('class','dept');
+    const c = this.gCampus.append('g'); this.campusG = c;
+    c.append('circle').attr('class','pulse').attr('r',8).attr('fill','none').attr('stroke','#fff').attr('stroke-width',2);
+    c.append('circle').attr('r',5).attr('fill','#fff').attr('stroke',getComputedStyle(document.documentElement).getPropertyValue('--navy').trim()||'#00205B').attr('stroke-width',2);
+    this.campusTxt = c.append('text').attr('class','maplabel').attr('x',12).attr('y',-10).text('Campus La Sabana');
+    this.rows=[]; this.parts=[]; this.arcs=[]; this.dots=[]; this.visible=true; this.raf=null; this.t0=performance.now();
+    if('IntersectionObserver' in window){
+      new IntersectionObserver(es=>{ this.visible=es[0].isIntersecting; this.kick(); },{threshold:.05}).observe(host);
+    }
+    this.layout();
+  }
+  layout(){
+    const w = this.host.clientWidth||320, h = this.host.clientHeight||440;
+    this.w=w; this.h=h;
+    this.proj = d3.geoMercator().fitExtent([[10,10],[w-10,h-10]],{type:'FeatureCollection',features:D.geo.features});
+    this.path = d3.geoPath(this.proj);
+    this.svg.attr('viewBox',`0 0 ${w} ${h}`);
+    this.paths.attr('d',this.path);
+    this.centroids = new Map(D.geo.features.map(f=>[f.properties.k,this.path.centroid(f)]));
+    const cp = this.proj(CAMPUS); this.cp=cp;
+    this.campusG.attr('transform',`translate(${cp[0]},${cp[1]})`);
+    this.campusTxt.attr('text-anchor', cp[0] > w*0.55 ? 'end':'start').attr('x', cp[0] > w*0.55 ? -12 : 12);
+    const dpr = Math.min(2,window.devicePixelRatio||1); this.dpr=dpr;
+    this.canvas.width = w*dpr; this.canvas.height = h*dpr;
+    this.prepare();
+  }
+  setRows(rs){ this.rows=rs; this.prepare(); }
+  prepare(){
+    // agrupa por municipio y crea partículas por estudiante
+    const by = new Map();
+    this.rows.forEach(r=>{ if(r.m>=0 && D.muns[r.m].x!=null){ by.set(r.m,(by.get(r.m)||0)+1); } });
+    this.byMun = by;
+    this.dots = [...by].map(([mi,n])=>{ const mu=D.muns[mi]; const p=this.proj([mu.x,mu.y]); return {mi,n,x:p[0],y:p[1],d:mu.d}; });
+    const T=this.cp; this.arcs=[]; this.parts=[];
+    this.dots.forEach(o=>{
+      const dx=T[0]-o.x, dy=T[1]-o.y, len=Math.hypot(dx,dy)||1;
+      let px=-dy/len, py=dx/len; if(py>0){px=-px;py=-py;}
+      const bow = Math.min(90,len*.28);
+      const cx=(o.x+T[0])/2+px*bow, cy=(o.y+T[1])/2+py*bow;
+      const a={ox:o.x,oy:o.y,cx,cy,len,n:o.n}; this.arcs.push(a);
+      for(let i=0;i<o.n;i++){
+        this.parts.push({a, dur:3.4+len/170+Math.random()*1.2, off:Math.random(), delay:Math.random()*2.2, sz:.9+Math.random()*.9});
+      }
+    });
+    this.t0=performance.now(); this.kick();
+  }
+  kick(){
+    cancelAnimationFrame(this.raf); this.raf=null;
+    const flows = this.mode==='flows' || this.opt.hero;
+    this.canvas.style.display = flows ? 'block':'none';
+    if(!flows) return;
+    if(reduceMotion || !this.visible){ this.draw(performance.now()); return; }
+    const loop = t=>{ this.draw(t); this.raf=requestAnimationFrame(loop); };
+    this.raf=requestAnimationFrame(loop);
+  }
+  draw(now){
+    const ctx=this.ctx, dpr=this.dpr, el=(now-this.t0)/1000;
+    ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,this.w,this.h);
+    ctx.lineWidth=.8;
+    this.arcs.forEach(a=>{
+      ctx.strokeStyle=`rgba(255,255,255,${Math.min(.26,.06+a.n*.012)})`;
+      ctx.beginPath(); ctx.moveTo(a.ox,a.oy); ctx.quadraticCurveTo(a.cx,a.cy,this.cp[0],this.cp[1]); ctx.stroke();
+    });
+    ctx.fillStyle='rgba(255,255,255,.55)';
+    this.dots.forEach(o=>{ ctx.beginPath(); ctx.arc(o.x,o.y,1.6+Math.sqrt(o.n)*.55,0,6.283); ctx.fill(); });
+    const T=this.cp;
+    this.parts.forEach(p=>{
+      let t = reduceMotion ? (p.off*.8+.1) : ((el-p.delay)/p.dur + p.off);
+      if(!reduceMotion && el<p.delay) return;
+      t = t-Math.floor(t);
+      const u=1-t, a=p.a;
+      const x=u*u*a.ox+2*u*t*a.cx+t*t*T[0], y=u*u*a.oy+2*u*t*a.cy+t*t*T[1];
+      ctx.fillStyle=`rgba(255,255,255,${(Math.sin(Math.PI*t)*.95).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(x,y,p.sz*1.5,0,6.283); ctx.fill();
+    });
+  }
+  /* --- pinta según modo --- */
+  render(rowsForDept, rowsAll, st){
+    // rowsForDept: filas sin filtro de depto (para el calor); rowsAll: filas con todos los filtros (puntos)
+    this.setRows(rowsAll);
+    this.paintDepts(rowsForDept, st);
+    this.paintBubbles(st);
+    this.paintRings();
+    this.paintLabels(rowsForDept);
+    this.kick();
+  }
+  paintDepts(rs,st){
+    const cnt = countBy(rs.filter(r=>r.d>=0),r=>r.d);
+    const byKey = new Map(D.depts.map((d,i)=>[d.k,i]));
+    const max = d3.max([...cnt.values()])||1;
+    const col = d3.scaleSequentialSqrt(d3.interpolateRgb('#1E4FA3','#ffffff')).domain([0,max]);
+    this.paths.each(function(f){
+      const i=byKey.get(f.properties.k);
+      d3.select(this).datum(f).classed('on', i!==undefined && i===st.dept);
+    });
+    const heat = this.mode==='heat';
+    this.paths.attr('fill',f=>{
+      const i=byKey.get(f.properties.k); const n=i===undefined?0:(cnt.get(i)||0);
+      if(heat) return n ? col(n) : 'rgba(255,255,255,.05)';
+      return 'rgba(255,255,255,.07)';
+    }).attr('fill-opacity',f=>{
+      if(!heat||st.dept===null) return 1;
+      const i=byKey.get(f.properties.k); return i===st.dept?1:.45;
+    });
+    this.deptKeys=byKey; this.deptCnt=cnt;
+    if(this.opt.interactive){
+      const self=this, total=rs.length;
+      this.paths.on('click',(e,f)=>{ const i=byKey.get(f.properties.k); if(i!==undefined) toggle('dept',i); })
+        .on('mousemove',(e,f)=>{
+          const i=byKey.get(f.properties.k); const n=i===undefined?0:(cnt.get(i)||0);
+          const nm=i===undefined?f.properties.k:D.depts[i].n;
+          showTip(`<b>${nm}</b>${n?fmtN(n)+' estudiantes ('+pct(n,total)+'%)':'Sin estudiantes'}`,e);
+        }).on('mouseleave',hideTip);
+    }
+  }
+  paintBubbles(st){
+    const show = this.mode==='bubbles' || this.mode==='rings';
+    const data = show ? this.dots : [];
+    const maxn = d3.max(this.dots,d=>d.n)||1;
+    const scale = this.mode==='rings' ? d3.scaleSqrt().domain([0,maxn]).range([0,9]) : d3.scaleSqrt().domain([0,maxn]).range([0,Math.min(34,this.w/12)]);
+    const regOf = d=>D.depts[d.d].r;
+    this.gBub.selectAll('circle').data(data,d=>d.mi).join(
+      e=>e.append('circle').attr('r',0),
+      u=>u, x=>x.transition().duration(200).attr('r',0).remove())
+      .attr('cx',d=>d.x).attr('cy',d=>d.y)
+      .attr('fill',d=>REGC[regOf(d)]).attr('fill-opacity',this.mode==='rings'?.85:.62)
+      .attr('stroke','#fff').attr('stroke-width',d=>st.mun===d.mi?2.4:.8).attr('stroke-opacity',d=>st.mun===d.mi?1:.7)
+      .style('cursor',this.opt.interactive?'pointer':'default')
+      .on('click',(e,d)=>{ if(this.opt.interactive) toggle('mun',d.mi); })
+      .on('mousemove',(e,d)=>{ const mu=D.muns[d.mi]; showTip(`<b>${mu.n}</b>${D.depts[mu.d].n} · ${fmtN(d.n)} estudiante${d.n===1?'':'s'}`,e); })
+      .on('mouseleave',hideTip)
+      .transition().duration(reduceMotion?0:500).attr('r',d=>Math.max(2.4,scale(d.n)));
+  }
+  paintRings(){
+    const g=this.gRing; g.selectAll('*').remove();
+    if(this.mode!=='rings') return;
+    const circ = d3.geoCircle().center(CAMPUS);
+    [100,200,400,600].forEach(km=>{
+      const poly = circ.radius(km/111.195).precision(2)();
+      g.append('path').attr('d',this.path(poly)).attr('fill','none').attr('stroke','rgba(255,255,255,.6)').attr('stroke-dasharray','3 5').attr('stroke-width',1.2);
+      const top=this.proj([CAMPUS[0]+ (km/111.195)*0.0, CAMPUS[1]+km/111.195]);
+      const east=this.proj([CAMPUS[0]+km/111.195*0.72, CAMPUS[1]-km/111.195*0.69]);
+      g.append('text').attr('class','ringlabel').attr('x',east[0]).attr('y',east[1]).attr('text-anchor','middle').text(km+' km');
+    });
+  }
+  paintLabels(rs){
+    const g=this.gLab; g.selectAll('*').remove();
+    if(this.mode!=='heat'||!this.opt.interactive) return;
+    const cnt=this.deptCnt; const top=[...cnt].sort((a,b)=>b[1]-a[1]).slice(0,9);
+    top.forEach(([i,n])=>{
+      const c=this.centroids.get(D.depts[i].k); if(!c) return;
+      g.append('text').attr('class','maplabel').attr('x',c[0]).attr('y',c[1]).attr('text-anchor','middle').text(D.depts[i].n+' · '+n);
+    });
+  }
+  setMode(m){ this.mode=m; }
+}
+
+/* ================== INSTANCIAS ================== */
+const heroMap = new GeoMap($('heroMap'),{hero:true,mode:'flows'});
+heroMap.setRows(rows); heroMap.paths.attr('fill','rgba(255,255,255,.07)');
+const exMap = new GeoMap($('exMap'),{interactive:true,mode:'heat'});
+
+/* hero KPIs */
+(function(){
+  const withDept = rows.filter(r=>r.d>=0);
+  const nDept = new Set(withDept.map(r=>r.d)).size;
+  const nMun = new Set(rows.filter(r=>r.m>=0).map(r=>r.m)).size;
+  const ks = rows.filter(r=>r.k!=null).map(r=>r.k);
+  const avg = d3.mean(ks), laps = d3.sum(ks)/40075;
+  const items = [
+    {v:nDept,f:fmtN,t:'departamentos de origen'},
+    {v:nMun,f:fmtN,t:'municipios en el mapa'},
+    {v:avg,f:n=>fmtN(n)+' km',t:'de distancia promedio al campus'},
+    {v:laps,f:n=>fmt1(n),t:'vueltas a la Tierra si sumamos la distancia de todos a casa'}
+  ];
+  const host=$('kpis');
+  host.innerHTML = items.map((k,i)=>`<div class="kpi"><b id="k${i}">0</b><span>${k.t}</span></div>`).join('');
+  items.forEach((k,i)=>countUp($('k'+i),k.v,k.f,1400));
+  countUp($('hTotal'),rows.length,fmtN,1400);
+})();
+
+/* ================== RENDER DE CADA GRÁFICA ================== */
+function renderMap(){
+  const all = sel([]), noDept = sel(['dept','reg','mun']);
+  // calor por departamento: ignora filtros geográficos; puntos: todos los filtros
+  const st = state;
+  exMap.render(sel(['dept']).filter(r=>st.reg===null||r.r===st.reg), all, st);
+  // lista de departamentos
+  const rs = sel(['dept']).filter(r=>st.reg===null||r.r===st.reg);
+  const cnt = countBy(rs.filter(r=>r.d>=0),r=>r.d);
+  const total = rs.length;
+  const items = [...cnt].sort((a,b)=>b[1]-a[1]).map(([i,n])=>{
+    const d=D.depts[i]; const ks=rs.filter(r=>r.d===i&&r.k!=null).map(r=>r.k);
+    return {id:i,label:d.n,sub:d.r,v:n,on:st.dept===i,color:null,
+      tip:`<b>${d.n}</b>${fmtN(n)} estudiantes (${pct(n,total)}%)<br>${ks.length?'Distancia media: '+fmtN(d3.mean(ks))+' km':''}`};
+  });
+  bars($('deptBars'),items.slice(0,24),{onClick:d=>toggle('dept',d.id)});
+  const ext = rs.filter(r=>r.d===-2), nd = rs.filter(r=>r.d===-1);
+  const bits=[];
+  if(ext.length){ const cs=[...new Set(ext.map(r=>r.e))]; bits.push(`${ext.length} desde el exterior (${cs.join(', ')})`); }
+  if(nd.length) bits.push(`${nd.length} sin departamento registrado en la base`);
+  $('outNote').textContent = (st.dept!==null||st.reg!==null) ? '' : (bits.length ? 'Fuera del mapa: '+bits.join('; ')+'.' : '');
+}
+
+function renderDistance(){
+  const rs = sel(['dbin']), ks = rs.filter(r=>r.k!=null);
+  const avg = d3.mean(ks,r=>r.k)||0, med = d3.median(ks,r=>r.k)||0, tot=d3.sum(ks,r=>r.k);
+  const far = ks.length? d3.greatest(ks,r=>r.k):null, near = ks.length? d3.least(ks,r=>r.k):null;
+  const mn = r=>r? D.muns[r.m]?.n : '';
+  $('distStats').innerHTML = ks.length ? `
+    <div class="stat"><b>${fmtN(avg)} km</b><span>distancia promedio al campus</span></div>
+    <div class="stat"><b>${fmtN(med)} km</b><span>la mitad de los estudiantes vive a menos de esta distancia</span></div>
+    <div class="stat"><b>${fmtN(far.k)} km</b><span>el más lejano: ${mn(far)||'—'}</span></div>
+    <div class="stat"><b>${fmt1(tot/40075)}</b><span>vueltas a la Tierra sumando la distancia de todos a casa (${fmtN(tot)} km)</span></div>` : '<div class="empty">Sin datos de distancia con estos filtros.</div>';
+  const cnt = countBy(ks,r=>Math.min(7,Math.floor(r.k/100)));
+  const bins = d3.range(DBINS).map(i=>({id:i,label:binLabel(i),v:cnt.get(i)||0}));
+  columns($('distChart'),bins,{h:270,sel:state.dbin,onClick:d=>toggle('dbin',d.id),every:1,
+    tip:d=>`<b>${d.label} km</b>${fmtN(d.v)} estudiantes (${pct(d.v,ks.length)}%)`,
+    mark:avg,markX:(v,w)=>v/800*w,markLabel:ks.length?'Promedio '+fmtN(avg)+' km':''});
+}
+
+function renderRegions(){
+  const rs = sel(['reg']); const cnt = countBy(rs,r=>r.r);
+  const order = ['Andina','Caribe','Orinoquía','Pacífica','Exterior','Sin dato'];
+  const data = order.map(k=>({k,v:cnt.get(k)||0})).filter(d=>d.v>0);
+  const total = d3.sum(data,d=>d.v);
+  const H=300; const {svg,g,w,h} = mk($('donut'),H,{t:0,r:0,b:0,l:0});
+  const R = Math.min(w,h)/2-6, cx=w/2, cy=h/2;
+  g.attr('transform',`translate(${cx},${cy})`);
+  const pie = d3.pie().sort(null).value(d=>d.v).padAngle(.012)(data);
+  const arc = d3.arc().innerRadius(R*.6).outerRadius(R).cornerRadius(3);
+  const arcOn = d3.arc().innerRadius(R*.58).outerRadius(R+6).cornerRadius(3);
+  g.selectAll('path.seg').data(pie,d=>d.data.k).join('path').attr('class','seg')
+    .attr('fill',d=>REGC[d.data.k]).attr('stroke','#00205B').attr('stroke-width',2)
+    .style('cursor',d=>REGS.includes(d.data.k)?'pointer':'default')
+    .attr('opacity',d=>state.reg!==null&&state.reg!==d.data.k?.4:1)
+    .on('click',(e,d)=>{ if(REGS.includes(d.data.k)) toggle('reg',d.data.k); })
+    .on('mousemove',(e,d)=>showTip(`<b>${d.data.k}</b>${fmtN(d.data.v)} estudiantes (${pct(d.data.v,total)}%)`,e)).on('mouseleave',hideTip)
+    .transition().duration(reduceMotion?0:600).attr('d',d=>state.reg===d.data.k?arcOn(d):arc(d));
+  g.selectAll('text').remove();
+  g.append('text').attr('text-anchor','middle').attr('y',4).attr('font-family','var(--display)').attr('font-weight',800).attr('font-size',44).attr('fill','#fff').text(fmtN(total));
+  g.append('text').attr('text-anchor','middle').attr('y',28).attr('font-size',13).attr('fill','rgba(255,255,255,.7)').text('estudiantes');
+  const items = data.map(d=>{
+    const ks = rs.filter(r=>r.r===d.k&&r.k!=null).map(r=>r.k);
+    return {id:d.k,label:d.k,sub:ks.length?'a '+fmtN(d3.mean(ks))+' km en promedio':'',v:d.v,vtxt:fmtN(d.v)+' · '+pct(d.v,total)+'%',color:REGC[d.k],on:state.reg===d.k};
+  });
+  bars($('regBars'),items,{onClick:d=>{ if(REGS.includes(d.id)) toggle('reg',d.id); }});
+}
+
+function renderSankey(){
+  const rs = sel(['reg','fac','prog']).filter(r=>REGS.includes(r.r));
+  const host=$('sankey'); const H=Math.max(360,Math.min(460,host.clientWidth*.9));
+  const {svg,g,w,h} = mk(host,H,{t:6,r:0,b:6,l:0});
+  const labelL = Math.min(84,w*.2), labelR = Math.min(190,w*.38);
+  const x0=labelL, x1=w-labelR, nodeW=12;
+  const mat = new Map(); rs.forEach(r=>{ const k=r.r+'|'+r.f; mat.set(k,(mat.get(k)||0)+1); });
+  const regTot = countBy(rs,r=>r.r), facTot = countBy(rs,r=>r.f);
+  const L = REGS.filter(k=>regTot.get(k)).sort((a,b)=>regTot.get(b)-regTot.get(a));
+  const Rn = [...facTot.keys()].sort((a,b)=>facTot.get(b)-facTot.get(a));
+  g.selectAll('*').remove();
+  if(!L.length){ g.append('text').attr('x',w/2).attr('y',h/2).attr('text-anchor','middle').attr('fill','rgba(255,255,255,.7)').text('Sin datos con estos filtros'); return; }
+  const total = rs.length, gap=8;
+  const sc = (h-gap*(Rn.length-1))/total;
+  const gapL = L.length>1 ? (h-total*sc)/(L.length-1) : 0;
+  let yy=0; const ln=new Map(); L.forEach(k=>{ const hh=regTot.get(k)*sc; ln.set(k,{y:yy,h:hh,off:0}); yy+=hh+gapL; });
+  yy=0; const rn=new Map(); Rn.forEach(k=>{ const hh=facTot.get(k)*sc; rn.set(k,{y:yy,h:hh,off:0}); yy+=hh+gap; });
+  const links=[];
+  L.forEach(a=>Rn.forEach(b=>{ const v=mat.get(a+'|'+b)||0; if(!v) return; const A=ln.get(a),B=rn.get(b); const t=v*sc;
+    links.push({a,b,v,y0:A.y+A.off,y1:B.y+B.off,t}); A.off+=t; B.off+=t; }));
+  const mid=(x0+x1)/2;
+  const lg=g.append('g');
+  lg.selectAll('path').data(links).join('path')
+    .attr('d',d=>`M${x0+nodeW},${d.y0}C${mid},${d.y0} ${mid},${d.y1} ${x1},${d.y1}L${x1},${d.y1+d.t}C${mid},${d.y1+d.t} ${mid},${d.y0+d.t} ${x0+nodeW},${d.y0+d.t}Z`)
+    .attr('fill',d=>REGC[d.a]).attr('opacity',d=>{
+      if(state.reg!==null||state.fac!==null){ return ((state.reg===null||state.reg===d.a)&&(state.fac===null||state.fac===+d.b))?.7:.12; }
+      return .45; })
+    .style('cursor','pointer')
+    .on('mousemove',function(e,d){ d3.select(this).attr('opacity',.9); showTip(`<b>${d.a} → ${D.facs[d.b]}</b>${fmtN(d.v)} estudiantes`,e); })
+    .on('mouseleave',function(){ hideTip(); renderSankey(); })
+    .on('click',(e,d)=>{ state.reg=d.a; state.fac=+d.b; state.dept=null; state.mun=null; state.prog=null; schedule(); });
+  L.forEach(k=>{ const n=ln.get(k);
+    g.append('rect').attr('x',x0).attr('y',n.y).attr('width',nodeW).attr('height',Math.max(2,n.h)).attr('rx',2).attr('fill',REGC[k]).style('cursor','pointer').on('click',()=>toggle('reg',k));
+    g.append('text').attr('x',x0-8).attr('y',n.y+n.h/2).attr('dy','.35em').attr('text-anchor','end').attr('font-size',13).attr('font-weight',state.reg===k?700:500).attr('fill','#fff').style('cursor','pointer').text(k).on('click',()=>toggle('reg',k));
+  });
+  Rn.forEach(k=>{ const n=rn.get(k);
+    g.append('rect').attr('x',x1).attr('y',n.y).attr('width',nodeW).attr('height',Math.max(2,n.h)).attr('rx',2).attr('fill','#fff').attr('opacity',state.fac!==null&&state.fac!==+k?.4:1).style('cursor','pointer').on('click',()=>toggle('fac',+k));
+    const t=g.append('text').attr('x',x1+nodeW+8).attr('y',n.y+Math.max(n.h,12)/2).attr('dy','.35em').attr('font-size',12.5).attr('font-weight',state.fac===+k?700:500).attr('fill','#fff').style('cursor','pointer').on('click',()=>toggle('fac',+k));
+    const nm=D.facs[k].length>26?D.facs[k].slice(0,25)+'…':D.facs[k];
+    t.text(nm+'  '+fmtN(facTot.get(k)));
+  });
+}
+
+function renderFaculties(){
+  const rs = sel(['fac','prog']); const cnt=countBy(rs,r=>r.f); const total=rs.length;
+  const items=[...cnt].sort((a,b)=>b[1]-a[1]).map(([i,n])=>({id:i,label:D.facs[i],v:n,vtxt:fmtN(n)+' · '+pct(n,total)+'%',on:state.fac===i}));
+  bars($('facBars'),items,{onClick:d=>toggle('fac',d.id)});
+  const rp = sel(['prog']); const pc=countBy(rp,r=>r.p);
+  const pit=[...pc].sort((a,b)=>b[1]-a[1]).slice(0,14).map(([i,n])=>({id:i,label:D.progs[i],sub:D.facs[D.prog_fac[i]],v:n,on:state.prog===i}));
+  if(state.prog!==null && !pit.some(d=>d.id===state.prog)){ pit.push({id:state.prog,label:D.progs[state.prog],sub:D.facs[D.prog_fac[state.prog]],v:pc.get(state.prog)||0,on:true}); }
+  bars($('progBars'),pit,{onClick:d=>toggle('prog',d.id)});
+  $('progNote').textContent = state.fac!==null ? 'Programas de '+D.facs[state.fac]+'.' : 'Los 14 programas con más estudiantes.';
+}
+
+let heatMode='n';
+function renderHeat(){
+  const rs=sel(['prog','reg','fac']).filter(r=>REGS.includes(r.r));
+  const pc=countBy(rs,r=>r.p);
+  const top=[...pc].sort((a,b)=>b[1]-a[1]).slice(0,12).map(d=>d[0]);
+  const host=d3.select('#heat'); host.selectAll('*').remove();
+  host.append('div');
+  REGS.forEach(rg=>host.append('div').attr('class','hh').style('color',rg==='Andina'?'#fff':'var(--mute)').text(rg));
+  let maxN=1, maxP=1;
+  const grid = top.map(p=>{ const tot=pc.get(p); const row=REGS.map(rg=>rs.filter(r=>r.p===p&&r.r===rg).length); maxN=Math.max(maxN,...row); maxP=Math.max(maxP,...row.map(v=>v/tot)); return {p,tot,row}; });
+  grid.forEach(({p,tot,row})=>{
+    host.append('div').attr('class','hr').text(D.progs[p]);
+    row.forEach((v,i)=>{
+      const val = heatMode==='n'? v/maxN : v/tot/maxP; const on=state.prog===p&&state.reg===REGS[i];
+      const bg = v? `rgba(255,255,255,${(.08+.92*Math.pow(val,.8)).toFixed(3)})` : 'rgba(255,255,255,.04)';
+      const dark = v && (.08+.92*Math.pow(val,.8))>.5;
+      host.append('button').attr('class','hc'+(on?' on':'')).attr('type','button').style('background',bg).style('color',dark?'#00205B':'#fff')
+        .text(v? (heatMode==='n'?fmtN(v):pct(v,tot)+'%') : '·')
+        .on('click',()=>{ if(v){ state.prog=p; state.reg=REGS[i]; state.fac=null; state.dept=null; state.mun=null; schedule(); } })
+        .on('mousemove',e=>showTip(`<b>${D.progs[p]}</b>${REGS[i]}: ${fmtN(v)} de ${fmtN(tot)} (${pct(v,tot)}%)`,e)).on('mouseleave',hideTip);
+    });
+  });
+  if(!grid.length) host.append('div').attr('class','empty').style('grid-column','1 / -1').text('Sin datos con estos filtros.');
+}
+
+function renderSemesters(){
+  const rs=sel(['sem']); const cnt=countBy(rs,r=>r.s);
+  const bins=d3.range(1,15).map(s=>({id:s,label:String(s),v:cnt.get(s)||0}));
+  columns($('semChart'),bins,{h:290,sel:state.sem,onClick:d=>toggle('sem',d.id),
+    tip:d=>`<b>Semestre ${d.id}</b>${fmtN(d.v)} estudiantes (${pct(d.v,rs.length)}%)`});
+  const first=rs.filter(r=>r.s!=null&&r.s<=2).length, adv=rs.filter(r=>r.s!=null&&r.s>=9).length;
+  $('semNote').textContent = rs.length ? `${pct(first,rs.length)}% está en primer año (semestres 1 y 2) y ${pct(adv,rs.length)}% en semestre 9 o superior.` : '';
+}
+
+function renderPerformance(){
+  const rs=sel([]); const gs=rs.filter(r=>r.g!=null);
+  // histograma promedio
+  const bin=d3.bin().domain([2.25,5]).thresholds(d3.range(2.5,5,0.25)).value(r=>r.g);
+  const bs=bin(gs).map((b,i)=>({id:i,label:fmt2(b.x0),v:b.length,x0:b.x0,x1:b.x1}));
+  const avg=d3.mean(gs,r=>r.g);
+  columns($('gpaChart'),bs,{h:240,every:2,color:()=>'#BBD0F4',
+    tip:d=>`<b>${fmt2(d.x0)} – ${fmt2(d.x1)}</b>${fmtN(d.v)} estudiantes`,
+    mark:avg,markX:(v,w)=>(v-2.25)/(5-2.25)*w,markLabel:avg?'Promedio '+fmt2(avg):''});
+  $('gpaNote').textContent = gs.length ? `Mediana ${fmt2(d3.median(gs,r=>r.g))} · ${pct(gs.filter(r=>r.g>=4).length,gs.length)}% tiene 4,0 o más · ${fmtN(gs.length)} estudiantes con promedio.` : 'Sin promedios con estos filtros.';
+  // créditos
+  const edges=[[0,12,'≤12'],[13,15,'13–15'],[16,18,'16–18'],[19,21,'19–21'],[22,24,'22–24'],[25,99,'25+']];
+  const cb=edges.map(([a,b,l],i)=>({id:i,label:l,v:rs.filter(r=>r.c>=a&&r.c<=b).length}));
+  columns($('crChart'),cb,{h:240,color:()=>'#BBD0F4',tip:d=>`<b>${d.label} créditos</b>${fmtN(d.v)} estudiantes`});
+  $('crNote').textContent = rs.length ? `Promedio de ${fmt1(d3.mean(rs,r=>r.c))} créditos inscritos · el valor más común es ${d3.mode(rs,r=>r.c)}.` : '';
+}
+
+function renderScatter(){
+  const rs=sel([]).filter(r=>r.g!=null&&r.k!=null);
+  const host=$('scatter'); const H=Math.max(300,Math.min(420,host.clientWidth*.5));
+  const m={t:10,r:12,b:40,l:44}; const {svg,g,w,h}=mk(host,H,m);
+  const x=d3.scaleLinear().domain([0,750]).range([0,w]), y=d3.scaleLinear().domain([2.2,5]).range([h,0]);
+  g.selectAll('*').remove();
+  g.append('g').call(d3.axisLeft(y).ticks(5).tickSize(-w).tickFormat(d=>fmt1(d))).call(a=>{a.select('.domain').remove();a.selectAll('line').attr('stroke','rgba(255,255,255,.14)');a.selectAll('text').attr('fill','rgba(255,255,255,.7)').attr('font-size',12);});
+  g.append('g').attr('transform',`translate(0,${h})`).call(d3.axisBottom(x).ticks(Math.max(4,Math.floor(w/90))).tickFormat(d=>d+' km')).call(a=>{a.select('.domain').attr('stroke','rgba(255,255,255,.35)');a.selectAll('line').attr('stroke','rgba(255,255,255,.35)');a.selectAll('text').attr('fill','rgba(255,255,255,.7)').attr('font-size',12);});
+  g.selectAll('circle').data(rs).join('circle').attr('cx',d=>x(d.k)).attr('cy',d=>y(d.g)).attr('r',3.4)
+    .attr('fill',d=>REGC[d.r]).attr('fill-opacity',.55).attr('stroke','#fff').attr('stroke-opacity',.25).attr('stroke-width',.5)
+    .on('mousemove',(e,d)=>showTip(`<b>${d.m>=0?D.muns[d.m].n:'—'}</b>${fmtN(d.k)} km · promedio ${fmt2(d.g)}<br>${D.progs[d.p]}, semestre ${d.s??'—'}`,e)).on('mouseleave',hideTip);
+  // regresión y correlación
+  let note='';
+  if(rs.length>8){
+    const mx=d3.mean(rs,d=>d.k), my=d3.mean(rs,d=>d.g);
+    const sxy=d3.sum(rs,d=>(d.k-mx)*(d.g-my)), sxx=d3.sum(rs,d=>(d.k-mx)**2), syy=d3.sum(rs,d=>(d.g-my)**2);
+    const b=sxy/sxx, a=my-b*mx, r=sxy/Math.sqrt(sxx*syy);
+    const x0=d3.min(rs,d=>d.k), x1=d3.max(rs,d=>d.k);
+    g.append('line').attr('x1',x(x0)).attr('x2',x(x1)).attr('y1',y(a+b*x0)).attr('y2',y(a+b*x1)).attr('stroke','#fff').attr('stroke-width',2.5).attr('stroke-dasharray','6 5').attr('pointer-events','none');
+    const ar=Math.abs(r), word= ar<.2?'prácticamente nula':ar<.4?'débil':ar<.6?'moderada':'fuerte';
+    note=`Correlación ${r.toLocaleString('es-CO',{maximumFractionDigits:2,minimumFractionDigits:2})}: relación ${word}${ar<.2?' — vivir lejos no se asocia con un promedio distinto':''}. Cada punto es un estudiante.`;
+  }
+  $('scNote').textContent=note||'Pocos datos con estos filtros.';
+  $('scLegend').innerHTML = REGS.map(k=>`<span><i style="background:${REGC[k]}"></i>${k}</span>`).join('');
+}
+
+function renderMunicipalities(){
+  const rs=sel(['mun']); const cnt=countBy(rs.filter(r=>r.m>=0),r=>r.m);
+  const items=[...cnt].sort((a,b)=>b[1]-a[1]).slice(0,12).map(([i,n])=>({id:i,label:D.muns[i].n,sub:D.depts[D.muns[i].d].n,v:n,on:state.mun===i}));
+  if(state.mun!==null && !items.some(d=>d.id===state.mun)) items.push({id:state.mun,label:D.muns[state.mun].n,sub:D.depts[D.muns[state.mun].d].n,v:cnt.get(state.mun)||0,on:true});
+  bars($('munBars'),items,{onClick:d=>toggle('mun',d.id)});
+}
+
+function renderInsights(){
+  const rs=sel([]), n=rs.length; const out=[];
+  if(!n){ $('insights').innerHTML='<li><p>No hay estudiantes con esta combinación de filtros.</p></li>'; return; }
+  const dc=[...countBy(rs.filter(r=>r.d>=0),r=>r.d)].sort((a,b)=>b[1]-a[1]);
+  const mc=[...countBy(rs.filter(r=>r.m>=0),r=>r.m)].sort((a,b)=>b[1]-a[1]);
+  const pc=[...countBy(rs,r=>r.p)].sort((a,b)=>b[1]-a[1]);
+  const ks=rs.filter(r=>r.k!=null), gs=rs.filter(r=>r.g!=null);
+  if(dc.length) out.push([pct(dc[0][1],n)+'%',`viene de ${D.depts[dc[0][0]].n}, el departamento que más aporta (${fmtN(dc[0][1])} estudiantes).`]);
+  if(mc.length>=3){ const t3=d3.sum(mc.slice(0,3),d=>d[1]); out.push([pct(t3,n)+'%',`sale de solo tres municipios: ${mc.slice(0,3).map(d=>D.muns[d[0]].n).join(', ')}.`]); }
+  if(ks.length){ const far=ks.filter(r=>r.k>=400).length; out.push([pct(far,ks.length)+'%',`vive a 400 km o más del campus; la mitad está a menos de ${fmtN(d3.median(ks,r=>r.k))} km.`]); }
+  if(pc.length) out.push([fmtN(pc[0][1]),`estudian ${D.progs[pc[0][0]]}, el programa con más foráneos${pc.length>1?`, seguido de ${D.progs[pc[1][0]]} (${fmtN(pc[1][1])})`:''}.`]);
+  const first=rs.filter(r=>r.s!=null&&r.s<=2).length; out.push([pct(first,n)+'%',`cursa primer o segundo semestre: están viviendo su adaptación a la ciudad y a la universidad.`]);
+  if(gs.length) out.push([fmt2(d3.mean(gs,r=>r.g)),`es el promedio acumulado del grupo (${fmtN(gs.length)} estudiantes con promedio).`]);
+  $('insights').innerHTML = out.map(([b,t])=>`<li><b>${b}</b><p>${t}</p></li>`).join('');
+}
+
+function renderBar(){
+  const n=sel([]).length;
+  countUp($('fN'),n,fmtN,500); $('fT').textContent=fmtN(rows.length);
+  const keys=Object.keys(state).filter(k=>state[k]!==null);
+  const chips=$('chips');
+  if(!keys.length){ chips.innerHTML='<span class="hint">Toca un departamento, una barra o una columna para filtrar todo el tablero.</span>'; }
+  else{
+    chips.innerHTML=keys.map(k=>{ const [a,b]=chipLabel(k); return `<button class="chip" data-k="${k}" type="button" aria-label="Quitar filtro ${a} ${b}">${a}: ${b} <i>✕</i></button>`; }).join('');
+    chips.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{ state[c.dataset.k]=null; schedule(); }));
+  }
+  $('reset').disabled=!keys.length;
+}
+
+/* ================== CICLO ================== */
+let pending=false;
+function renderAll(){
+  pending=false; hideTip();
+  renderBar(); renderMap(); renderDistance(); renderRegions(); renderSankey();
+  renderFaculties(); renderHeat(); renderSemesters(); renderPerformance(); renderScatter();
+  renderMunicipalities(); renderInsights();
+}
+function schedule(){ if(!pending){ pending=true; requestAnimationFrame(renderAll); } }
+
+$('reset').addEventListener('click',()=>{ Object.keys(state).forEach(k=>state[k]=null); schedule(); });
+$('modeSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  [...$('modeSeg').children].forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));
+  exMap.setMode(b.dataset.m); schedule();
+});
+$('heatSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  [...$('heatSeg').children].forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));
+  heatMode=b.dataset.m; schedule();
+});
+let rt; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ heroMap.layout(); exMap.layout(); heroMap.paths.attr('fill','rgba(255,255,255,.07)'); renderAll(); },180); });
+
+(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>{ heroMap.layout(); heroMap.paths.attr('fill','rgba(255,255,255,.07)'); renderAll(); });
+renderAll();
+})();
+</script>
+</body>
+</html>
