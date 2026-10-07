@@ -1,3 +1,4 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <!doctype html>
 <html lang="es">
 <head>
@@ -27,6 +28,44 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 :focus-visible{outline:2px solid #fff;outline-offset:3px;border-radius:4px}
 svg text{font-family:var(--body)}
 .wrap{max-width:1240px;margin:0 auto;padding:0 clamp(18px,4vw,40px)}
+
+
+/* ---------- PROCESO (pantalla inicial) ---------- */
+.intro{min-height:100svh;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(28px,5vw,80px);align-items:center;max-width:1440px;margin:0 auto;padding:clamp(28px,6vw,72px) clamp(18px,4vw,56px)}
+.intro h1{font-family:var(--display);font-weight:800;font-size:clamp(32px,4.6vw,64px);line-height:1;letter-spacing:-.025em;margin:0 0 clamp(20px,4vh,36px);max-width:12em}
+.steps{list-style:none;margin:0;padding:0;counter-reset:st}
+.steps li{counter-increment:st;position:relative;padding:0 0 clamp(14px,2.4vh,22px) 54px;opacity:0;transform:translateY(10px);animation:stepIn .6s cubic-bezier(.2,.8,.2,1) forwards}
+.steps li:nth-child(1){animation-delay:.1s}.steps li:nth-child(2){animation-delay:.4s}.steps li:nth-child(3){animation-delay:.7s}.steps li:nth-child(4){animation-delay:1s}.steps li:nth-child(5){animation-delay:1.3s}
+@keyframes stepIn{to{opacity:1;transform:none}}
+.steps li::before{content:counter(st);position:absolute;left:0;top:0;width:34px;height:34px;border-radius:50%;background:#fff;color:var(--navy);font-family:var(--display);font-weight:800;font-size:16px;display:grid;place-items:center}
+.steps li::after{content:"";position:absolute;left:16.5px;top:38px;bottom:4px;width:1px;background:var(--line)}
+.steps li:last-child::after{display:none}
+.steps b{display:block;font-family:var(--display);font-weight:600;font-size:18px;line-height:1.25;margin:3px 0 2px}
+.steps p{margin:0;color:var(--mute);font-size:15px;max-width:34em}
+.spec{background:var(--blue);border-radius:20px;padding:clamp(22px,3vw,36px)}
+.spec h2{font-family:var(--display);font-weight:600;font-size:20px;margin:0 0 4px}
+.spec .subnote{margin:0 0 22px}
+.ruler{position:relative;margin:44px 0 60px}
+.ruler .track{display:flex;height:16px;border-radius:8px;overflow:hidden}
+.ruler .z1{flex:48;background:rgba(255,255,255,.2)}
+.ruler .z2{flex:2;background:#fff}
+.ruler .z3{flex:50;background:#8FB0EC}
+.ruler .tick{position:absolute;top:22px;font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
+.ruler .zl{position:absolute;top:-34px;font-size:13px;font-weight:600;line-height:1.2}
+.ruler .zl.a{left:0}
+.ruler .zl.c{right:0;text-align:right}
+.ruler .zl small{display:block;font-weight:400;color:var(--mute);font-size:12px}
+.ruler .rev{position:absolute;left:49%;top:44px;transform:translateX(-50%);width:max-content;max-width:190px;text-align:center;font-size:12.5px;line-height:1.25;font-weight:600}
+.ruler .rev::before{content:"";position:absolute;left:50%;top:-20px;height:18px;width:1px;background:#fff}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 22px;margin:34px 0 0}
+.facts div{border-top:1px solid var(--line);padding-top:9px;font-size:14px;line-height:1.35}
+.facts dt{color:var(--mute);font-size:12.5px;margin:0 0 2px}
+.facts dd{margin:0;font-weight:500}
+.facts a{color:#fff;text-underline-offset:3px}
+.introgo{margin-top:clamp(20px,3vh,32px)}
+@media (max-width:900px){.intro{grid-template-columns:1fr;min-height:auto}}
+@media (max-width:520px){.facts{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.steps li{opacity:1;transform:none;animation:none}}
 
 /* ---------- HERO ---------- */
 .hero{position:relative;min-height:100svh;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:center;gap:clamp(8px,3vw,48px);padding:clamp(24px,5vw,56px) clamp(18px,4vw,56px);max-width:1440px;margin:0 auto}
@@ -147,6 +186,40 @@ footer li{margin:4px 0}
 </style>
 </head>
 <body>
+
+<section class="intro" id="proceso" aria-labelledby="procTitle">
+  <div>
+    <h1 id="procTitle">Así identificamos a los estudiantes foráneos</h1>
+    <ol class="steps">
+      <li><b>Partimos de los estudiantes matriculados</b><p>La base trae la dirección física que cada estudiante registró al matricularse.</p></li>
+      <li><b>Medimos la distancia al campus</b><p>Para cada municipio calculamos la distancia en línea recta hasta el campus principal, en Chía.</p></li>
+      <li><b>Clasificamos con un criterio único</b><p>A más de 50 km, el estudiante es foráneo. Entre 48 y 50 km, el caso se revisa. A menos de 48 km, no es foráneo.</p></li>
+      <li><b>Revisamos caso por caso</b><p>Cada municipio se revisó uno a uno y se definió la región a la que pertenece.</p></li>
+      <li><b>Agrupamos y caracterizamos</b><p>Identificamos a los foráneos de las regiones seleccionadas. Hay 80 estudiantes sin ninguna región registrada.</p></li>
+    </ol>
+    <a class="go introgo" href="#inicio">Ver la caracterización</a>
+  </div>
+  <div class="spec">
+    <h2>Cómo se calculó la distancia</h2>
+    <p class="subnote">Base de clasificación «Sabana tu segundo hogar», elaborada el 21 de julio de 2026.</p>
+    <div class="ruler" role="img" aria-label="Escala de 0 a 100 kilómetros: menos de 48 km no es foráneo, de 48 a 50 km se revisa, más de 50 km es foráneo">
+      <div class="zl a">No foráneo<small>menos de 48 km</small></div>
+      <div class="zl c">Foráneo<small>más de 50 km</small></div>
+      <div class="track"><span class="z1"></span><span class="z2"></span><span class="z3"></span></div>
+      <span class="tick" style="left:0">0 km</span>
+      <span class="tick" style="right:0">100 km</span>
+      <div class="rev">A revisar<br>de 48 a 50 km, inclusive</div>
+    </div>
+    <dl class="facts">
+      <div><dt>Punto de referencia</dt><dd>Campus del Puente del Común, Km 7 Autopista Norte, Chía</dd></div>
+      <div><dt>Coordenada usada</dt><dd>4,8615 N · 74,0328 O</dd></div>
+      <div><dt>Método</dt><dd>Distancia en línea recta sobre la esfera terrestre (fórmula de Haversine). No es distancia por carretera ni tiempo de viaje.</dd></div>
+      <div><dt>Municipios evaluados</dt><dd>1.102, incluida Bogotá, D.C. Se excluyeron 18 áreas no municipalizadas y 1 isla.</dd></div>
+      <div><dt>Fuente territorial</dt><dd><a href="https://www.datos.gov.co/Mapas-Nacionales/DIVIPOLA-C-digos-municipios/gdxc-w37w" target="_blank" rel="noopener noreferrer">DIVIPOLA, DANE</a></dd></div>
+      <div><dt>Ubicación del campus</dt><dd><a href="https://www.unisabana.edu.co/campus-unisabana" target="_blank" rel="noopener noreferrer">Sitio oficial de la Universidad</a></dd></div>
+    </dl>
+  </div>
+</section>
 
 <header class="hero" id="inicio">
   <div class="copy">
@@ -324,6 +397,7 @@ footer li{margin:4px 0}
       <li>10 estudiantes tienen origen en el exterior. Se muestran aparte del mapa.</li>
       <li>Regiones agrupadas por departamento: Andina, Caribe, Orinoquía y Pacífica. Los puntos del mapa están ubicados en el centro de cada municipio.</li>
       <li>El promedio excluye a quienes aparecen con 0 o sin promedio. La distancia viene de la base original (39 registros sin dato).</li>
+      <li>El proceso de clasificación (criterio de 50 km, fuentes y método) está descrito en la primera pantalla.</li>
       <li>Este tablero no incluye nombres, correos, teléfonos ni ID de estudiantes: solo datos agregados por estudiante sin identificar.</li>
     </ul>
   </div>
@@ -954,3 +1028,5 @@ renderAll();
 </script>
 </body>
 </html>
+
+</body></html>
